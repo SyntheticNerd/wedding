@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "predev": "convex codegen --typecheck disable || true",
-    "build": "convex deploy --cmd 'next build'",
+    "build": "if [ \"$VERCEL_ENV\" = \"production\" ]; then convex deploy --cmd 'next build'; else next build; fi",
     "build:next": "next build",
     "start": "next start",
     "lint": "eslint",
