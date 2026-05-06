@@ -232,6 +232,7 @@ export const create = mutation({
         "Phone is required for adult guests (or mark as Child)",
       );
     }
+    const invitationId = args.invitationId ?? generateInvitationId();
     const id = await ctx.db.insert("guests", {
       firstName: args.firstName.trim(),
       lastName: args.lastName.trim(),
@@ -239,7 +240,7 @@ export const create = mutation({
       phoneE164: phoneE164 ?? undefined,
       email: args.email?.trim() || undefined,
       address: args.address,
-      invitationId: args.invitationId ?? generateInvitationId(),
+      invitationId,
       side: args.side,
       isChild: args.isChild ?? false,
       rsvpStatus: args.rsvpStatus ?? "pending",
@@ -254,7 +255,9 @@ export const create = mutation({
       createdBy: userId,
       updatedAt: now,
     });
-    return id;
+    // Returning invitationId — caller may want to chain another insert into
+    // the same household (e.g. the "Save & add another" form action).
+    return { id, invitationId };
   },
 });
 
