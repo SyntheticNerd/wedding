@@ -6,9 +6,9 @@
  * After this you only need to redeploy — no schema or function changes.
  */
 export const COUPLE = {
-  bride: "Partner",
+  bride: "Jewel",
   groom: "Andrew",
-  /** "and" word used in the title, e.g. "Andrew & Partner" */
+  /** "and" word used in the title, e.g. "Andrew & Jewel" */
   joiner: "&",
 } as const;
 
