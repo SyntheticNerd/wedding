@@ -179,9 +179,7 @@ function ClosedCard() {
     <Card>
       <h2 className="font-heading text-2xl mb-3">RSVPs are closed</h2>
       <p className="text-muted-foreground">
-        Thank you so much! If you still need to update your response, please
-        reach out to {COUPLE.groom} or {COUPLE.bride} directly and we&apos;ll
-        take care of it.
+        {`Thank you so much! If you still need to update your response, please reach out to ${COUPLE.groom} or ${COUPLE.bride} directly and we'll take care of it.`}
       </p>
     </Card>
   );
@@ -719,9 +717,9 @@ function SuccessCard({
           className="mx-auto mb-6 flex items-center justify-center gap-3 text-blush"
           aria-hidden
         >
-          <span className="block h-px w-10 bg-blush/50" />
+          <span className="block h-px w-10 bg-blush/40" />
           <span className="text-lg leading-none">♥</span>
-          <span className="block h-px w-10 bg-blush/50" />
+          <span className="block h-px w-10 bg-blush/40" />
         </div>
         <p className="font-sans tracking-[0.4em] uppercase text-xs text-charcoal/60 mb-3">
           {rsvpStatus === "yes" ? "Wonderful" : "Thank you"}

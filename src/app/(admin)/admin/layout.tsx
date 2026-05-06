@@ -34,26 +34,26 @@ export default async function AdminLayout({
           <nav className="flex items-center gap-3 sm:gap-6 text-[13px] sm:text-sm">
             <Link
               href="/admin"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               Guests
             </Link>
             <Link
               href="/admin/invitations"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               <span className="sm:hidden">QR</span>
               <span className="hidden sm:inline">Invitations</span>
             </Link>
             <Link
               href="/admin/import"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               Import
             </Link>
             <Link
               href="/admin/settings"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               <span className="sm:hidden">Set</span>
               <span className="hidden sm:inline">Settings</span>

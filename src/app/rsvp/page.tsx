@@ -36,7 +36,7 @@ export default async function RsvpPage({
             <h1 className="font-heading text-5xl sm:text-6xl leading-none">
               RSVP
             </h1>
-            <div className="mx-auto mt-6 h-px w-16 bg-blush/60" aria-hidden />
+            <div className="mx-auto mt-6 h-px w-16 bg-blush/40" aria-hidden />
             {WEDDING.dateISO && (
               <p className="font-heading italic text-lg sm:text-xl text-muted-foreground mt-4">
                 {WEDDING.dateISO}

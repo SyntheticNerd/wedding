@@ -111,7 +111,63 @@ export function GuestTable() {
         {headerActions}
       </div>
 
-      <div className="rounded-md border border-border bg-card">
+      {/* Mobile: card list — desktop's 6-col table is unscannable on a phone */}
+      <ul className="sm:hidden divide-y divide-border rounded-md border border-border bg-card">
+        {guests === undefined ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <li key={`m-s${i}`} className="p-3">
+              <Skeleton className="h-5 w-2/3 mb-2" />
+              <Skeleton className="h-3 w-1/2" />
+            </li>
+          ))
+        ) : guests.length === 0 ? (
+          <li className="text-center py-12 text-muted-foreground text-sm">
+            {search.trim() || side !== "all" || status !== "all"
+              ? "No guests match these filters."
+              : "No guests yet — add your first one."}
+          </li>
+        ) : (
+          guests.map((g) => (
+            <li key={g._id}>
+              <Link
+                href={`/admin/guests/${g._id}`}
+                className="flex items-start justify-between gap-3 p-3 active:bg-muted/50 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
+                    {g.firstName} {g.lastName}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span>{SIDE_LABEL[g.side]}</span>
+                    <span aria-hidden>·</span>
+                    <span className="font-mono">{g.invitationId}</span>
+                    {g.plusOneAllowed && (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>+1 allowed</span>
+                      </>
+                    )}
+                  </div>
+                  {g.aliases.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                      aka {g.aliases.join(", ")}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <RsvpStatusBadge
+                    status={g.rsvpStatus}
+                    offline={g.rsvpOffline}
+                  />
+                </div>
+              </Link>
+            </li>
+          ))
+        )}
+      </ul>
+
+      {/* Desktop: full table */}
+      <div className="hidden sm:block rounded-md border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
