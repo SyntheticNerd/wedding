@@ -76,6 +76,7 @@ export default defineSchema({
   adminProfiles: defineTable({
     clerkUserId: v.string(),
     displayName: v.string(),
+    email: v.optional(v.string()),
     emailNotificationsEnabled: v.boolean(),
   }).index("by_clerk_user", ["clerkUserId"]),
 });

@@ -1,0 +1,824 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { useConvex, useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
+import { api, type Id } from "@/lib/convex";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { COUPLE, WEDDING } from "@/lib/site-config";
+import { cn } from "@/lib/utils";
+
+type Candidate = {
+  id: Id<"guests">;
+  firstName: string;
+  lastName: string;
+  postalSuffix?: string;
+  hasPhone: boolean;
+};
+
+/* The flow is a small state machine. Sub-steps live in their own components
+   below to keep render branches narrow. */
+type Step =
+  | { kind: "lookup" }
+  | { kind: "invitation"; candidates: Candidate[] }
+  | { kind: "invitation-confirm"; candidate: Candidate }
+  | { kind: "many"; candidates: Candidate[]; last4: string }
+  | {
+      kind: "form";
+      guestId: Id<"guests">;
+      last4?: string;
+      invitationId?: string;
+    }
+  | { kind: "success"; firstName: string; rsvpStatus: "yes" | "no" };
+
+interface Props {
+  initialInvitationId?: string;
+}
+
+export function RsvpFlow({ initialInvitationId }: Props) {
+  const settings = useQuery(api.settings.publicSettings, {});
+  const lockedAt =
+    settings && typeof settings.lockedAt === "number" ? settings.lockedAt : null;
+  const isClosed = useIsClosed(lockedAt);
+
+  // If we landed with an invitation token, kick off the chooser flow.
+  const [step, setStep] = useState<Step>(() =>
+    initialInvitationId
+      ? { kind: "invitation", candidates: [] }
+      : { kind: "lookup" },
+  );
+
+  if (settings === undefined) {
+    return <FlowSkeleton />;
+  }
+
+  if (isClosed) {
+    return <ClosedCard />;
+  }
+
+  switch (step.kind) {
+    case "lookup":
+      return (
+        <LookupForm
+          onMatch={(result, last4) => {
+            if (result.kind === "none") {
+              toast.error(
+                "We couldn't find that. Double-check the spelling and the last 4 digits of the phone we'd reach you at.",
+                { duration: 7000 },
+              );
+              return;
+            }
+            if (result.kind === "one") {
+              setStep({
+                kind: "form",
+                guestId: result.candidate.id,
+                last4,
+              });
+              return;
+            }
+            setStep({ kind: "many", candidates: result.candidates, last4 });
+          }}
+        />
+      );
+    case "invitation":
+      return (
+        <InvitationChooser
+          invitationId={initialInvitationId!}
+          onPick={(candidate) =>
+            setStep({ kind: "invitation-confirm", candidate })
+          }
+        />
+      );
+    case "invitation-confirm":
+      return (
+        <InvitationConfirm
+          candidate={step.candidate}
+          invitationId={initialInvitationId!}
+          onConfirmed={(last4) =>
+            setStep({
+              kind: "form",
+              guestId: step.candidate.id,
+              last4,
+              invitationId: initialInvitationId,
+            })
+          }
+          onBack={() => setStep({ kind: "invitation", candidates: [] })}
+        />
+      );
+    case "many":
+      return (
+        <ManyChooser
+          candidates={step.candidates}
+          onPick={(candidate) =>
+            setStep({
+              kind: "form",
+              guestId: candidate.id,
+              last4: step.last4,
+            })
+          }
+        />
+      );
+    case "form":
+      return (
+        <RsvpForm
+          guestId={step.guestId}
+          last4={step.last4}
+          invitationId={step.invitationId}
+          onSuccess={(firstName, rsvpStatus) =>
+            setStep({ kind: "success", firstName, rsvpStatus })
+          }
+        />
+      );
+    case "success":
+      return <SuccessCard firstName={step.firstName} rsvpStatus={step.rsvpStatus} />;
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Helpers
+   -------------------------------------------------------------------- */
+
+/**
+ * Drives the "RSVPs are closed" banner. Reading `Date.now()` directly during
+ * render is technically impure (and React's purity lint flags it), so we
+ * stash it in state and refresh once a minute — also gives a free upgrade for
+ * anyone who happens to be on the page when the cutoff fires.
+ */
+function useIsClosed(lockedAt: number | null): boolean {
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (lockedAt === null) return;
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [lockedAt]);
+  return lockedAt !== null && now > lockedAt;
+}
+
+/* ----------------------------------------------------------------------
+   Step components
+   -------------------------------------------------------------------- */
+
+function FlowSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-10" />
+      <Skeleton className="h-10" />
+      <Skeleton className="h-10" />
+      <Skeleton className="h-12" />
+    </div>
+  );
+}
+
+function ClosedCard() {
+  return (
+    <Card>
+      <h2 className="font-heading text-2xl mb-3">RSVPs are closed</h2>
+      <p className="text-muted-foreground">
+        Thank you so much! If you still need to update your response, please
+        reach out to {COUPLE.groom} or {COUPLE.bride} directly and we&apos;ll
+        take care of it.
+      </p>
+    </Card>
+  );
+}
+
+/* --- Step: Name + last4 lookup --- */
+
+function LookupForm({
+  onMatch,
+}: {
+  onMatch: (
+    result:
+      | { kind: "none" }
+      | { kind: "one"; candidate: Candidate }
+      | { kind: "many"; candidates: Candidate[] },
+    last4: string,
+  ) => void;
+}) {
+  const convex = useConvex();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [last4, setLast4] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed4 = last4.replace(/\D/g, "").slice(-4);
+    if (!firstName.trim() || !lastName.trim() || trimmed4.length !== 4) {
+      toast.error("First name, last name, and last 4 digits — all three.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const result = await convex.query(api.rsvp.findGuestForRsvp, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          last4: trimmed4,
+        });
+        onMatch(result, trimmed4);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Lookup failed");
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <p className="font-heading italic text-xl sm:text-2xl text-charcoal/80 text-center mb-2">
+        So glad you&apos;re here.
+      </p>
+      <p className="text-center text-xs text-muted-foreground mb-6 leading-relaxed">
+        Enter your name and the last 4 digits of your phone to find your
+        invitation.
+      </p>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <FieldStack>
+          <Label htmlFor="firstName">First name</Label>
+          <Input
+            id="firstName"
+            value={firstName}
+            autoComplete="given-name"
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+            autoFocus
+          />
+        </FieldStack>
+        <FieldStack>
+          <Label htmlFor="lastName">Last name</Label>
+          <Input
+            id="lastName"
+            value={lastName}
+            autoComplete="family-name"
+            onChange={(e) => setLastName(e.target.value)}
+            required
+          />
+        </FieldStack>
+        <FieldStack>
+          <Label htmlFor="last4">Last 4 digits of your phone</Label>
+          <Input
+            id="last4"
+            value={last4}
+            inputMode="numeric"
+            maxLength={4}
+            pattern="[0-9]*"
+            placeholder="1234"
+            onChange={(e) =>
+              setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            required
+          />
+        </FieldStack>
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full h-12 text-base"
+        >
+          {pending ? "Looking…" : "Find my invitation"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+/* --- Step: Invitation chooser (QR-linked household) --- */
+
+function InvitationChooser({
+  invitationId,
+  onPick,
+}: {
+  invitationId: string;
+  onPick: (c: Candidate) => void;
+}) {
+  const candidates = useQuery(api.rsvp.getInvitationCandidates, {
+    invitationId,
+  });
+
+  if (candidates === undefined) {
+    return <FlowSkeleton />;
+  }
+  if (candidates.length === 0) {
+    return (
+      <Card>
+        <h2 className="font-heading text-2xl mb-3">
+          Invitation not found
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          This invitation link doesn&apos;t look right — try searching by
+          name instead.
+        </p>
+        <Link
+          href="/rsvp"
+          className={buttonVariants({ variant: "outline" }) + " w-full h-12"}
+        >
+          Look up by name
+        </Link>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <p className="font-heading italic text-xl sm:text-2xl text-charcoal/80 text-center mb-2">
+        We&apos;re so glad you scanned in.
+      </p>
+      <p className="text-center text-xs text-muted-foreground mb-6 leading-relaxed">
+        Tap your name to RSVP.
+      </p>
+      <ul className="space-y-2">
+        {candidates.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              onClick={() => onPick(c)}
+              className={cn(
+                "w-full text-left px-5 py-4 rounded-lg border border-border bg-card",
+                "hover:border-charcoal/40 hover:bg-card/70 transition-colors",
+                "font-heading text-xl",
+              )}
+            >
+              {c.firstName} {c.lastName}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/* --- Step: Invitation flow — confirm with last 4 (or skip if no phone) --- */
+
+function InvitationConfirm({
+  candidate,
+  invitationId,
+  onConfirmed,
+  onBack,
+}: {
+  candidate: Candidate;
+  invitationId: string;
+  onConfirmed: (last4?: string) => void;
+  onBack: () => void;
+}) {
+  const convex = useConvex();
+  const [last4, setLast4] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  // If the guest has no phone on file, the invitation token alone is enough.
+  // Skip past this step on next tick — calling state setters during render is
+  // unsafe.
+  useEffect(() => {
+    if (!candidate.hasPhone) {
+      onConfirmed(undefined);
+    }
+  }, [candidate.hasPhone, onConfirmed]);
+  if (!candidate.hasPhone) {
+    return <FlowSkeleton />;
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed4 = last4.replace(/\D/g, "").slice(-4);
+    if (trimmed4.length !== 4) {
+      toast.error("Need 4 digits.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const guest = await convex.query(api.rsvp.getGuestForRsvp, {
+          guestId: candidate.id,
+          last4: trimmed4,
+          invitationId,
+        });
+        if (!guest) {
+          toast.error(
+            "That doesn't match the phone we have on file. Try again, or contact us.",
+          );
+          return;
+        }
+        onConfirmed(trimmed4);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Verification failed");
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <p className="text-center text-sm text-muted-foreground mb-6 leading-relaxed">
+        Hi <span className="text-charcoal font-medium">{candidate.firstName}</span>!
+        To confirm, please enter the last 4 digits of your phone.
+      </p>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <FieldStack>
+          <Label htmlFor="last4">Last 4 digits</Label>
+          <Input
+            id="last4"
+            value={last4}
+            inputMode="numeric"
+            maxLength={4}
+            pattern="[0-9]*"
+            placeholder="1234"
+            onChange={(e) =>
+              setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+            }
+            required
+            autoFocus
+          />
+        </FieldStack>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="flex-1"
+            disabled={pending}
+          >
+            Back
+          </Button>
+          <Button type="submit" disabled={pending} className="flex-1 h-12">
+            {pending ? "…" : "Continue"}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+/* --- Step: Multi-match chooser (same first+last name, different households) --- */
+
+function ManyChooser({
+  candidates,
+  onPick,
+}: {
+  candidates: Candidate[];
+  onPick: (c: Candidate) => void;
+}) {
+  return (
+    <Card>
+      <p className="text-center text-sm text-muted-foreground mb-6 leading-relaxed">
+        We found a few people with that name. Pick yours — the suffix is the
+        last 2 digits of your postal code.
+      </p>
+      <ul className="space-y-2">
+        {candidates.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              onClick={() => onPick(c)}
+              className={cn(
+                "w-full flex items-center justify-between px-5 py-4 rounded-lg border border-border bg-card",
+                "hover:border-charcoal/40 hover:bg-card/70 transition-colors",
+              )}
+            >
+              <span className="font-heading text-xl">
+                {c.firstName} {c.lastName}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {c.postalSuffix ? `…${c.postalSuffix}` : "—"}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/* --- Step: The actual RSVP form --- */
+
+type LoadedGuest = NonNullable<
+  ReturnType<typeof useQuery<typeof api.rsvp.getGuestForRsvp>>
+>;
+
+function RsvpForm({
+  guestId,
+  last4,
+  invitationId,
+  onSuccess,
+}: {
+  guestId: Id<"guests">;
+  last4?: string;
+  invitationId?: string;
+  onSuccess: (firstName: string, rsvpStatus: "yes" | "no") => void;
+}) {
+  const guest = useQuery(api.rsvp.getGuestForRsvp, {
+    guestId,
+    last4,
+    invitationId,
+  });
+
+  if (guest === undefined) return <FlowSkeleton />;
+  if (guest === null) {
+    return (
+      <Card>
+        <h2 className="font-heading text-2xl mb-3">Verification failed</h2>
+        <p className="text-muted-foreground mb-6">
+          We couldn&apos;t verify that link. Please try the lookup again.
+        </p>
+        <Link
+          href="/rsvp"
+          className={buttonVariants({ variant: "outline" }) + " w-full h-12"}
+        >
+          Start over
+        </Link>
+      </Card>
+    );
+  }
+  // Mounted-once form so its `useState` initializers can read `guest`
+  // synchronously — avoids the setState-in-effect hydration anti-pattern.
+  return (
+    <RsvpFormFields
+      key={guest.id}
+      guest={guest}
+      guestId={guestId}
+      last4={last4}
+      invitationId={invitationId}
+      onSuccess={onSuccess}
+    />
+  );
+}
+
+function RsvpFormFields({
+  guest,
+  guestId,
+  last4,
+  invitationId,
+  onSuccess,
+}: {
+  guest: LoadedGuest;
+  guestId: Id<"guests">;
+  last4?: string;
+  invitationId?: string;
+  onSuccess: (firstName: string, rsvpStatus: "yes" | "no") => void;
+}) {
+  const submit = useMutation(api.rsvp.submitRsvp);
+  const [rsvpStatus, setRsvpStatus] = useState<"yes" | "no" | null>(
+    guest.rsvpStatus === "pending" ? null : guest.rsvpStatus,
+  );
+  const [plusOneRsvp, setPlusOneRsvp] = useState<"yes" | "no" | null>(
+    guest.plusOneRsvp ?? null,
+  );
+  const [plusOneName, setPlusOneName] = useState(guest.plusOneName ?? "");
+  const [dietaryNotes, setDietaryNotes] = useState(guest.dietaryNotes ?? "");
+  const [noteToCouple, setNoteToCouple] = useState(guest.noteToCouple ?? "");
+  const [pending, startTransition] = useTransition();
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (rsvpStatus === null) {
+      toast.error("Please pick yes or no.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await submit({
+          guestId,
+          last4,
+          invitationId,
+          rsvpStatus,
+          plusOneRsvp:
+            guest.plusOneAllowed && rsvpStatus === "yes"
+              ? plusOneRsvp ?? undefined
+              : undefined,
+          plusOneName:
+            guest.plusOneAllowed && rsvpStatus === "yes" && plusOneRsvp === "yes"
+              ? plusOneName.trim() || undefined
+              : undefined,
+          dietaryNotes: dietaryNotes.trim() || undefined,
+          noteToCouple: noteToCouple.trim() || undefined,
+        });
+        onSuccess(guest.firstName, rsvpStatus);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Submit failed");
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <div className="text-center mb-8">
+        <p className="font-heading italic text-lg text-charcoal/70 mb-1">
+          Hello,
+        </p>
+        <p className="font-heading text-3xl sm:text-4xl">
+          {guest.firstName} {guest.lastName}
+        </p>
+      </div>
+      <form onSubmit={onSubmit} className="space-y-7">
+        <fieldset>
+          <legend className="block font-heading italic text-xl sm:text-2xl text-charcoal mb-4 text-center">
+            Will you be joining us?
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <ChoiceTile
+              selected={rsvpStatus === "yes"}
+              onClick={() => setRsvpStatus("yes")}
+              tone="yes"
+              label="Joyfully accept"
+            />
+            <ChoiceTile
+              selected={rsvpStatus === "no"}
+              onClick={() => setRsvpStatus("no")}
+              tone="no"
+              label="Regretfully decline"
+            />
+          </div>
+        </fieldset>
+
+        {guest.plusOneAllowed && rsvpStatus === "yes" && (
+          <fieldset className="space-y-3">
+            <legend className="block font-heading italic text-lg text-charcoal mb-1 text-center">
+              You&apos;re welcome to bring a plus-one.
+            </legend>
+            <div className="grid grid-cols-2 gap-3">
+              <ChoiceTile
+                selected={plusOneRsvp === "yes"}
+                onClick={() => setPlusOneRsvp("yes")}
+                label="Bringing one"
+                tone="yes"
+                small
+              />
+              <ChoiceTile
+                selected={plusOneRsvp === "no"}
+                onClick={() => setPlusOneRsvp("no")}
+                label="Just me"
+                tone="no"
+                small
+              />
+            </div>
+            {plusOneRsvp === "yes" && (
+              <FieldStack>
+                <Label htmlFor="plus-one-name">Plus-one name (optional)</Label>
+                <Input
+                  id="plus-one-name"
+                  value={plusOneName}
+                  onChange={(e) => setPlusOneName(e.target.value)}
+                  placeholder="Their name"
+                  maxLength={120}
+                />
+              </FieldStack>
+            )}
+          </fieldset>
+        )}
+
+        {rsvpStatus === "yes" && (
+          <FieldStack>
+            <Label htmlFor="dietary">Dietary needs or allergies</Label>
+            <Textarea
+              id="dietary"
+              rows={2}
+              value={dietaryNotes}
+              onChange={(e) => setDietaryNotes(e.target.value)}
+              placeholder="Vegetarian, gluten-free, allergic to…"
+              maxLength={1000}
+            />
+          </FieldStack>
+        )}
+
+        <FieldStack>
+          <Label htmlFor="note">Leave us a note (optional)</Label>
+          <Textarea
+            id="note"
+            rows={3}
+            value={noteToCouple}
+            onChange={(e) => setNoteToCouple(e.target.value)}
+            placeholder="Anything you&apos;d like to share"
+            maxLength={2000}
+          />
+        </FieldStack>
+
+        <Button
+          type="submit"
+          disabled={pending || rsvpStatus === null}
+          className="w-full h-12 text-base"
+        >
+          {pending ? "Sending…" : "Send my response"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+/* --- Step: Success card --- */
+
+function SuccessCard({
+  firstName,
+  rsvpStatus,
+}: {
+  firstName: string;
+  rsvpStatus: "yes" | "no";
+}) {
+  return (
+    <Card>
+      <div className="text-center">
+        <div
+          className="mx-auto mb-6 flex items-center justify-center gap-3 text-blush"
+          aria-hidden
+        >
+          <span className="block h-px w-10 bg-blush/50" />
+          <span className="text-lg leading-none">♥</span>
+          <span className="block h-px w-10 bg-blush/50" />
+        </div>
+        <p className="font-sans tracking-[0.4em] uppercase text-xs text-charcoal/60 mb-3">
+          {rsvpStatus === "yes" ? "Wonderful" : "Thank you"}
+        </p>
+        <h2 className="font-heading text-3xl sm:text-4xl mb-4">
+          {rsvpStatus === "yes"
+            ? `You're set, ${firstName}.`
+            : `We'll miss you, ${firstName}.`}
+        </h2>
+        <p className="text-muted-foreground leading-relaxed mb-8">
+          {rsvpStatus === "yes"
+            ? `We can't wait to celebrate with you${
+                WEDDING.dateISO ? ` on ${WEDDING.dateISO}` : ""
+              }. More details — schedule, venue, registry — coming soon.`
+            : "Thank you for letting us know — we wish you could be there."}
+        </p>
+        <Link
+          href="/"
+          className="inline-block text-xs tracking-[0.3em] uppercase text-muted-foreground hover:text-charcoal transition-colors"
+        >
+          Back to home
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+/* ----------------------------------------------------------------------
+   Layout primitives — kept tiny so the public form has its own sense of
+   place independent of the admin shell.
+   -------------------------------------------------------------------- */
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm px-6 py-8 sm:px-10 sm:py-10">
+      {children}
+    </div>
+  );
+}
+
+function FieldStack({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-1.5">{children}</div>;
+}
+
+function ChoiceTile({
+  selected,
+  onClick,
+  label,
+  tone,
+  small,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+  tone: "yes" | "no";
+  small?: boolean;
+}) {
+  // Hairline glyph above the label — yes gets a blush heart so the affirmative
+  // tile carries a touch more warmth than the decline tile, even when
+  // unselected. Selected states use charcoal text on a fuller bg tint so the
+  // chosen state is more legible than the unchosen one.
+  const glyph = tone === "yes" ? "♥" : "—";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "w-full rounded-xl border-2 px-3 sm:px-4 transition-all text-center",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-charcoal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-cream",
+        small ? "py-3" : "py-4 sm:py-5",
+        selected
+          ? tone === "yes"
+            ? "border-[var(--status-yes)] bg-[var(--status-yes)]/20 ring-1 ring-[var(--status-yes)]/30"
+            : "border-[var(--status-no)] bg-[var(--status-no)]/20 ring-1 ring-[var(--status-no)]/30"
+          : "border-border bg-card hover:border-charcoal/30",
+      )}
+    >
+      {!small && (
+        <div
+          className={cn(
+            "text-2xl leading-none mb-1.5",
+            tone === "yes" ? "text-blush" : "text-muted-foreground/60",
+          )}
+          aria-hidden
+        >
+          {glyph}
+        </div>
+      )}
+      <div
+        className={cn(
+          "font-heading text-charcoal",
+          small ? "text-base" : "text-base sm:text-xl",
+        )}
+      >
+        {label}
+      </div>
+    </button>
+  );
+}
