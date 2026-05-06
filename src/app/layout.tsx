@@ -30,18 +30,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <ConvexClerkProvider>
-        <html
-          lang="en"
-          className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
-        >
-          <body className="min-h-full flex flex-col">
+    <html
+      lang="en"
+      className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">
+        <ClerkProvider>
+          <ConvexClerkProvider>
             {children}
             <Toaster richColors />
-          </body>
-        </html>
-      </ConvexClerkProvider>
-    </ClerkProvider>
+          </ConvexClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
