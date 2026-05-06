@@ -3,6 +3,7 @@
 import { use } from "react";
 import { useQuery } from "convex/react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { api } from "@/lib/convex";
 import type { Id } from "@/lib/convex";
 import { GuestForm } from "@/components/admin/guest-form";
@@ -49,9 +50,19 @@ export default function GuestDetailPage({
         <h1 className="font-heading text-3xl mt-2 break-words">
           {guest.firstName} {guest.lastName}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Invitation <span className="font-mono">{guest.invitationId}</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-muted-foreground">
+          <span>
+            Invitation{" "}
+            <span className="font-mono">{guest.invitationId}</span>
+          </span>
+          <Link
+            href={`/admin/guests/new?invitation=${encodeURIComponent(guest.invitationId)}`}
+            className="inline-flex items-center gap-1 text-foreground hover:text-foreground/70"
+          >
+            <Plus className="size-3.5" />
+            Add household member
+          </Link>
+        </div>
       </div>
       <GuestForm mode="edit" initial={guest} />
     </div>

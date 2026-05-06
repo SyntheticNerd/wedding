@@ -31,6 +31,9 @@ type Mode = "create" | "edit";
 interface Props {
   mode: Mode;
   initial?: Doc<"guests">;
+  /** When creating, pre-fill the invitationId field (e.g. from
+   * /admin/guests/new?invitation=… so we can chain household members). */
+  defaultInvitationId?: string;
 }
 
 type FormState = {
@@ -58,7 +61,10 @@ type FormState = {
   addressCountry: string;
 };
 
-function fromGuest(g: Doc<"guests"> | undefined): FormState {
+function fromGuest(
+  g: Doc<"guests"> | undefined,
+  defaults?: { invitationId?: string },
+): FormState {
   return {
     firstName: g?.firstName ?? "",
     lastName: g?.lastName ?? "",
@@ -75,7 +81,7 @@ function fromGuest(g: Doc<"guests"> | undefined): FormState {
     dietaryNotes: g?.dietaryNotes ?? "",
     noteToCouple: g?.noteToCouple ?? "",
     adminNotes: g?.adminNotes ?? "",
-    invitationId: g?.invitationId ?? "",
+    invitationId: g?.invitationId ?? defaults?.invitationId ?? "",
     addressLine1: g?.address?.line1 ?? "",
     addressLine2: g?.address?.line2 ?? "",
     addressCity: g?.address?.city ?? "",
@@ -85,9 +91,11 @@ function fromGuest(g: Doc<"guests"> | undefined): FormState {
   };
 }
 
-export function GuestForm({ mode, initial }: Props) {
+export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
   const router = useRouter();
-  const [state, setState] = useState<FormState>(fromGuest(initial));
+  const [state, setState] = useState<FormState>(
+    fromGuest(initial, { invitationId: defaultInvitationId }),
+  );
   const [pending, startTransition] = useTransition();
   const create = useMutation(api.guests.create);
   const update = useMutation(api.guests.update);
@@ -167,10 +175,17 @@ export function GuestForm({ mode, initial }: Props) {
   // so we don't loop forever on a guest who genuinely has an unusual number.
   const [phoneOverride, setPhoneOverride] = useState(false);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function runSave(addAnother: boolean) {
     if (!state.firstName.trim() || !state.lastName.trim()) {
       toast.error("First and last name are required");
+      return;
+    }
+    // Phone is required for adults — they look themselves up via last-4 on
+    // /rsvp. Children RSVP via the parent's QR link, so phone is optional.
+    if (!state.isChild && !state.phoneRaw.trim()) {
+      toast.error(
+        "Phone is required (or check 'Child' if this guest doesn't have one)",
+      );
       return;
     }
     if (!phoneOverride && !validatePhoneOrToast()) {
@@ -181,9 +196,31 @@ export function GuestForm({ mode, initial }: Props) {
       try {
         const payload = buildPayload();
         if (mode === "create") {
-          await create(payload);
-          toast.success(`Added ${state.firstName}`);
-          router.push("/admin");
+          // create returns { id, invitationId } — capturing the latter so
+          // a "Save & add another" run lands on the same household even
+          // when the user left invitationId blank and the server
+          // auto-generated one.
+          const result = await create(payload);
+          if (addAnother) {
+            // Reset to a clean form for the next household member, but
+            // keep invitationId + side + the household address so the
+            // common case (entering a family) is one tap per person.
+            setState({
+              ...fromGuest(undefined, { invitationId: result.invitationId }),
+              side: state.side,
+              addressLine1: state.addressLine1,
+              addressLine2: state.addressLine2,
+              addressCity: state.addressCity,
+              addressRegion: state.addressRegion,
+              addressPostal: state.addressPostal,
+              addressCountry: state.addressCountry,
+            });
+            setPhoneOverride(false);
+            toast.success(`Added ${state.firstName} — add another`);
+          } else {
+            toast.success(`Added ${state.firstName}`);
+            router.push("/admin");
+          }
         } else if (initial) {
           await update({ id: initial._id, ...payload });
           toast.success("Saved");
@@ -192,6 +229,11 @@ export function GuestForm({ mode, initial }: Props) {
         toast.error(err instanceof Error ? err.message : "Save failed");
       }
     });
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    runSave(false);
   }
 
   function onDelete() {
@@ -236,12 +278,18 @@ export function GuestForm({ mode, initial }: Props) {
         </Field>
         <Field
           label="Phone"
-          hint="Any format — normalized to E.164 on save"
+          required={!state.isChild}
+          hint={
+            state.isChild
+              ? "Optional for children"
+              : "Required — guests look themselves up by last 4 digits"
+          }
         >
           <Input
             value={state.phoneRaw}
             onChange={(e) => handleChange("phoneRaw", e.target.value)}
             placeholder="(415) 555-1212"
+            required={!state.isChild}
           />
         </Field>
         <Field label="Email">
@@ -270,7 +318,7 @@ export function GuestForm({ mode, initial }: Props) {
         </Field>
         <Field
           label="Invitation ID"
-          hint="Group multi-person invitations (auto if blank)"
+          hint="Use a memorable label (e.g. 'evangelista') to group a household — anyone with the same ID shares one QR. Auto-generated if blank."
         >
           <Input
             value={state.invitationId}
@@ -479,14 +527,24 @@ export function GuestForm({ mode, initial }: Props) {
 
       {/* Sticky on mobile so Save is always one tap away from any field;
           static at sm+ to preserve desktop reading rhythm. */}
-      <div className="sticky bottom-0 -mx-6 sm:mx-0 px-6 sm:px-0 py-3 sm:py-4 bg-background/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-none border-t border-border flex items-center justify-between gap-2">
-        <div className="flex gap-2">
+      <div className="sticky bottom-0 -mx-6 sm:mx-0 px-6 sm:px-0 py-3 sm:py-4 bg-background/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-none border-t border-border flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={pending}>
             {mode === "create" ? "Add guest" : "Save changes"}
           </Button>
+          {mode === "create" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => runSave(true)}
+              disabled={pending}
+            >
+              Save & add another
+            </Button>
+          )}
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={() => router.back()}
             disabled={pending}
           >

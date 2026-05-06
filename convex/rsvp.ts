@@ -32,6 +32,7 @@ type LookupCandidate = {
   /** Last 2 of postal code, when available — the chooser disambiguator. */
   postalSuffix?: string;
   hasPhone: boolean;
+  rsvpStatus: Doc<"guests">["rsvpStatus"];
 };
 
 function toCandidate(g: Doc<"guests">): LookupCandidate {
@@ -42,6 +43,7 @@ function toCandidate(g: Doc<"guests">): LookupCandidate {
     lastName: g.lastName,
     postalSuffix: postal.length >= 2 ? postal.slice(-2) : undefined,
     hasPhone: Boolean(g.phoneE164),
+    rsvpStatus: g.rsvpStatus,
   };
 }
 

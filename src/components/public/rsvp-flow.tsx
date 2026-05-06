@@ -19,6 +19,7 @@ type Candidate = {
   lastName: string;
   postalSuffix?: string;
   hasPhone: boolean;
+  rsvpStatus: "pending" | "yes" | "no";
 };
 
 /* The flow is a small state machine. Sub-steps live in their own components
@@ -135,7 +136,20 @@ export function RsvpFlow({ initialInvitationId }: Props) {
         />
       );
     case "success":
-      return <SuccessCard firstName={step.firstName} rsvpStatus={step.rsvpStatus} />;
+      return (
+        <SuccessCard
+          firstName={step.firstName}
+          rsvpStatus={step.rsvpStatus}
+          // When the guest came in via a household invitation link, offer a
+          // loop-back so a parent can RSVP the next family member without
+          // re-scanning the QR or typing the URL.
+          onAnotherHouseholdMember={
+            initialInvitationId
+              ? () => setStep({ kind: "invitation", candidates: [] })
+              : undefined
+          }
+        />
+      );
   }
 }
 
@@ -319,13 +333,16 @@ function InvitationChooser({
     );
   }
 
+  const anyAnswered = candidates.some((c) => c.rsvpStatus !== "pending");
   return (
     <Card>
       <p className="font-heading italic text-xl sm:text-2xl text-charcoal/80 text-center mb-2">
         We&apos;re so glad you scanned in.
       </p>
       <p className="text-center text-xs text-muted-foreground mb-6 leading-relaxed">
-        Tap your name to RSVP.
+        {anyAnswered
+          ? "Tap your name to RSVP. Already replied? Tap again to update."
+          : "Tap your name to RSVP."}
       </p>
       <ul className="space-y-2">
         {candidates.map((c) => (
@@ -334,12 +351,14 @@ function InvitationChooser({
               type="button"
               onClick={() => onPick(c)}
               className={cn(
-                "w-full text-left px-5 py-4 rounded-lg border border-border bg-card",
+                "w-full flex items-center justify-between gap-3 px-5 py-4 rounded-lg border border-border bg-card",
                 "hover:border-charcoal/40 hover:bg-card/70 transition-colors",
-                "font-heading text-xl",
               )}
             >
-              {c.firstName} {c.lastName}
+              <span className="font-heading text-xl truncate">
+                {c.firstName} {c.lastName}
+              </span>
+              <ChooserStatus status={c.rsvpStatus} />
             </button>
           </li>
         ))}
@@ -706,9 +725,11 @@ function RsvpFormFields({
 function SuccessCard({
   firstName,
   rsvpStatus,
+  onAnotherHouseholdMember,
 }: {
   firstName: string;
   rsvpStatus: "yes" | "no";
+  onAnotherHouseholdMember?: () => void;
 }) {
   return (
     <Card>
@@ -736,12 +757,30 @@ function SuccessCard({
               }. More details — schedule, venue, registry — coming soon.`
             : "Thank you for letting us know — we wish you could be there."}
         </p>
-        <Link
-          href="/"
-          className="inline-block text-xs tracking-[0.3em] uppercase text-muted-foreground hover:text-charcoal transition-colors"
-        >
-          Back to home
-        </Link>
+        {onAnotherHouseholdMember ? (
+          <div className="flex flex-col gap-3 items-center">
+            <Button
+              type="button"
+              onClick={onAnotherHouseholdMember}
+              className="w-full h-12 text-sm tracking-[0.2em] uppercase"
+            >
+              RSVP for another in your household
+            </Button>
+            <Link
+              href="/"
+              className="text-xs tracking-[0.3em] uppercase text-muted-foreground hover:text-charcoal transition-colors"
+            >
+              All done — back to home
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href="/"
+            className="inline-block text-xs tracking-[0.3em] uppercase text-muted-foreground hover:text-charcoal transition-colors"
+          >
+            Back to home
+          </Link>
+        )}
       </div>
     </Card>
   );
@@ -762,6 +801,32 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function FieldStack({ children }: { children: React.ReactNode }) {
   return <div className="space-y-1.5">{children}</div>;
+}
+
+function ChooserStatus({ status }: { status: "pending" | "yes" | "no" }) {
+  // Compact status pill that lives inside chooser rows. Sage for yes, dusty
+  // rose for no, muted for pending — matches the admin badge palette so
+  // status reads consistently across surfaces.
+  if (status === "yes") {
+    return (
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-[var(--status-yes)]/15 text-[var(--status-yes)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-widest">
+        <span aria-hidden>✓</span>
+        Yes
+      </span>
+    );
+  }
+  if (status === "no") {
+    return (
+      <span className="shrink-0 inline-flex items-center rounded-full border border-[var(--status-no)]/40 text-[var(--status-no)] bg-[var(--status-no)]/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-widest">
+        Declined
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted-foreground">
+      Pending
+    </span>
+  );
 }
 
 function ChoiceTile({
