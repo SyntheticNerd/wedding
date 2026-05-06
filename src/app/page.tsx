@@ -33,8 +33,7 @@ export default function Home() {
             RSVP
           </Link>
         </div>
-        <div className="mt-12 inline-flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground/70">
-          <span className="block w-12 h-px bg-charcoal/15" />
+        <div className="mt-12 text-[10px] uppercase tracking-widest text-muted-foreground/70">
           <Link href="/admin" className="hover:text-muted-foreground">
             Admin
           </Link>
