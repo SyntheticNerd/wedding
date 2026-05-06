@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { COUPLE, WEDDING } from "@/lib/site-config";
 import { RsvpFlow } from "@/components/public/rsvp-flow";
+import { LogoMark } from "@/components/site/logo";
 
 // Public RSVP page is auth-free, but it still needs runtime Convex access
 // for the lookup/submit flow. Force-dynamic keeps Next from trying to
@@ -21,10 +22,10 @@ export default async function RsvpPage({
       <header className="px-6 py-6 sm:py-8">
         <Link
           href="/"
-          className="font-heading text-xl tracking-tight text-charcoal/80 hover:text-charcoal transition-colors"
+          aria-label={`${COUPLE.groom} ${COUPLE.joiner} ${COUPLE.bride} — home`}
+          className="inline-block transition-opacity hover:opacity-80"
         >
-          {COUPLE.groom} <span className="italic text-blush">{COUPLE.joiner}</span>{" "}
-          {COUPLE.bride}
+          <LogoMark size="sm" />
         </Link>
       </header>
       <main className="flex-1 px-6 pb-12 sm:pb-16">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { COUPLE } from "@/lib/site-config";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { LogoMark } from "@/components/site/logo";
 
 // Admin pages are auth-gated and rely on a runtime Convex connection;
 // they must not be statically prerendered at build.
@@ -24,10 +25,11 @@ export default async function AdminLayout({
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
           <Link
             href="/admin"
-            className="font-heading text-lg sm:text-xl tracking-tight shrink-0"
+            aria-label={`${COUPLE.groom} ${COUPLE.joiner} ${COUPLE.bride} admin`}
+            className="flex items-center gap-3 shrink-0 transition-opacity hover:opacity-80"
           >
-            {COUPLE.groom} {COUPLE.joiner} {COUPLE.bride}
-            <span className="hidden sm:inline ml-3 text-xs uppercase tracking-widest text-muted-foreground font-sans">
+            <LogoMark size="sm" />
+            <span className="hidden sm:inline text-xs uppercase tracking-widest text-muted-foreground font-sans">
               admin
             </span>
           </Link>
