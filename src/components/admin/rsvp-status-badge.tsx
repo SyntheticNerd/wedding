@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 type Status = "pending" | "yes" | "no";
 
@@ -14,19 +13,7 @@ const COPY: Record<Status, string> = {
   no: "No",
 };
 
-export function RsvpStatusBadge({ status, offline }: Props) {
-  if (offline) {
-    return (
-      <Badge
-        variant="outline"
-        className={cn(
-          "border-[var(--status-offline)] text-[var(--status-offline)] bg-[var(--status-offline)]/10",
-        )}
-      >
-        Offline
-      </Badge>
-    );
-  }
+function statusBadge(status: Status) {
   if (status === "yes") {
     return (
       <Badge className="bg-[var(--status-yes)] text-white hover:bg-[var(--status-yes)]/90">
@@ -49,4 +36,21 @@ export function RsvpStatusBadge({ status, offline }: Props) {
       {COPY[status]}
     </Badge>
   );
+}
+
+export function RsvpStatusBadge({ status, offline }: Props) {
+  if (offline) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        {statusBadge(status)}
+        <Badge
+          variant="outline"
+          className="border-[var(--status-offline)] text-[var(--status-offline)] bg-[var(--status-offline)]/10 text-[10px]"
+        >
+          offline
+        </Badge>
+      </span>
+    );
+  }
+  return statusBadge(status);
 }

@@ -140,7 +140,9 @@ export function GuestTable() {
                   colSpan={6}
                   className="text-center py-12 text-muted-foreground"
                 >
-                  No guests yet — add your first one.
+                  {search.trim() || side !== "all" || status !== "all"
+                    ? "No guests match these filters."
+                    : "No guests yet — add your first one."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -152,12 +154,12 @@ export function GuestTable() {
                     window.location.href = `/admin/guests/${g._id}`;
                   }}
                 >
-                  <TableCell>
-                    <div className="font-medium">
+                  <TableCell className="max-w-[28ch]">
+                    <div className="font-medium truncate" title={`${g.firstName} ${g.lastName}`}>
                       {g.firstName} {g.lastName}
                     </div>
                     {g.aliases.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground truncate">
                         aka {g.aliases.join(", ")}
                       </div>
                     )}
@@ -175,13 +177,29 @@ export function GuestTable() {
                     />
                   </TableCell>
                   <TableCell className="text-sm">
-                    {!g.plusOneAllowed
-                      ? "—"
-                      : g.plusOneRsvp === "yes"
-                        ? `Yes${g.plusOneName ? ` · ${g.plusOneName}` : ""}`
-                        : g.plusOneRsvp === "no"
-                          ? "Declined"
-                          : "Allowed"}
+                    {!g.plusOneAllowed ? (
+                      "—"
+                    ) : g.plusOneRsvp === "yes" ? (
+                      <span>
+                        Yes
+                        {g.plusOneName ? ` · ${g.plusOneName}` : ""}
+                      </span>
+                    ) : g.plusOneRsvp === "no" ? (
+                      <span className="text-[var(--status-no)]">
+                        Declined
+                      </span>
+                    ) : g.rsvpStatus === "no" ? (
+                      <span className="text-muted-foreground">
+                        Allowed (n/a)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="size-1.5 rounded-full bg-[var(--status-offline)]" />
+                        <span className="text-[var(--status-offline)]">
+                          +1 pending
+                        </span>
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs text-right text-muted-foreground">
                     {new Date(g.updatedAt).toLocaleDateString()}

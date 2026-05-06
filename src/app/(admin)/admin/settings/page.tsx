@@ -32,6 +32,8 @@ export default function SettingsPage() {
     useState<Edited<string>>(null);
   const [lockedAtEdit, setLockedAtEdit] =
     useState<Edited<string>>(null);
+  const [venueCapacityEdit, setVenueCapacityEdit] =
+    useState<Edited<string>>(null);
   const [notificationsEdit, setNotificationsEdit] =
     useState<Edited<boolean>>(null);
 
@@ -41,6 +43,11 @@ export default function SettingsPage() {
     weddingDateEdit ?? (settings?.weddingDate as string | null) ?? "";
   const lockedAt =
     lockedAtEdit ?? (settings?.lockedAt as string | null) ?? "";
+  const venueCapacity =
+    venueCapacityEdit ??
+    (settings?.venueCapacity != null
+      ? String(settings.venueCapacity)
+      : "");
   const notificationsOn =
     notificationsEdit ??
     me?.profile?.emailNotificationsEnabled ??
@@ -49,6 +56,21 @@ export default function SettingsPage() {
   function save() {
     startTransition(async () => {
       try {
+        const capacityRaw = venueCapacity.trim();
+        const capacityParsed = capacityRaw
+          ? Number.parseInt(capacityRaw, 10)
+          : null;
+        // Reject negatives + non-finite values silently — UI also has min=0.
+        const capacityNumber =
+          capacityParsed != null &&
+          Number.isFinite(capacityParsed) &&
+          capacityParsed >= 0
+            ? capacityParsed
+            : null;
+        if (capacityRaw && capacityNumber === null) {
+          toast.error("Venue capacity must be a non-negative whole number");
+          return;
+        }
         await Promise.all([
           setSetting({
             key: "coupleNames",
@@ -62,12 +84,20 @@ export default function SettingsPage() {
             key: "lockedAt",
             value: lockedAt.trim() || null,
           }),
+          setSetting({
+            key: "venueCapacity",
+            value:
+              capacityNumber != null && Number.isFinite(capacityNumber)
+                ? capacityNumber
+                : null,
+          }),
           setNotifications({ enabled: notificationsOn }),
         ]);
         toast.success("Settings saved");
         setCoupleNamesEdit(null);
         setWeddingDateEdit(null);
         setLockedAtEdit(null);
+        setVenueCapacityEdit(null);
         setNotificationsEdit(null);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Save failed");
@@ -131,6 +161,26 @@ export default function SettingsPage() {
               After this date, the public RSVP form is read-only.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl">Venue capacity</h2>
+        <div className="space-y-1 max-w-xs">
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Maximum headcount
+          </Label>
+          <Input
+            type="number"
+            min={0}
+            value={venueCapacity}
+            onChange={(e) => setVenueCapacityEdit(e.target.value)}
+            placeholder="e.g. 150"
+          />
+          <p className="text-xs text-muted-foreground">
+            Used by the capacity bar on the guest list to flag when projected
+            attendance approaches or exceeds this number.
+          </p>
         </div>
       </section>
 

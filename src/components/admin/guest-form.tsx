@@ -105,17 +105,18 @@ export function GuestForm({ mode, initial }: Props) {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    const address =
-      state.addressLine1 || state.addressCity
-        ? {
-            line1: state.addressLine1,
-            line2: state.addressLine2 || undefined,
-            city: state.addressCity,
-            region: state.addressRegion,
-            postalCode: state.addressPostal,
-            country: state.addressCountry || "US",
-          }
-        : undefined;
+    // Address is only sent if line1 is filled — partial addresses (e.g.
+    // city only) are dropped to avoid storing unusable shipping info.
+    const address = state.addressLine1.trim()
+      ? {
+          line1: state.addressLine1.trim(),
+          line2: state.addressLine2.trim() || undefined,
+          city: state.addressCity.trim(),
+          region: state.addressRegion.trim(),
+          postalCode: state.addressPostal.trim(),
+          country: state.addressCountry.trim() || "US",
+        }
+      : undefined;
     return {
       firstName: state.firstName.trim(),
       lastName: state.lastName.trim(),
@@ -127,9 +128,16 @@ export function GuestForm({ mode, initial }: Props) {
       rsvpStatus: state.rsvpStatus,
       rsvpOffline: state.rsvpOffline,
       plusOneAllowed: state.plusOneAllowed,
-      plusOneName: state.plusOneName.trim() || undefined,
-      plusOneRsvp:
-        state.plusOneRsvp === "" ? undefined : state.plusOneRsvp,
+      // Zero out plus-one fields when the toggle is off so a previously-set
+      // RSVP doesn't ghost into the rollups.
+      plusOneName: state.plusOneAllowed
+        ? state.plusOneName.trim() || undefined
+        : undefined,
+      plusOneRsvp: state.plusOneAllowed
+        ? state.plusOneRsvp === ""
+          ? undefined
+          : state.plusOneRsvp
+        : undefined,
       dietaryNotes: state.dietaryNotes.trim() || undefined,
       noteToCouple: state.noteToCouple.trim() || undefined,
       adminNotes: state.adminNotes.trim() || undefined,
@@ -138,10 +146,35 @@ export function GuestForm({ mode, initial }: Props) {
     };
   }
 
+  // Soft phone validation — warns the admin if the entered phone won't
+  // normalize to E.164. Returns true if OK to submit.
+  function validatePhoneOrToast(): boolean {
+    const raw = state.phoneRaw.trim();
+    if (!raw) return true;
+    // Quick sanity check: must contain at least 7 digits to be a usable number.
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 7) {
+      toast.error(
+        "Phone doesn't look valid — needs at least 7 digits. Save anyway? Re-submit.",
+        { duration: 5000 },
+      );
+      return false;
+    }
+    return true;
+  }
+
+  // Track whether the user has confirmed past a phone-validation warning
+  // so we don't loop forever on a guest who genuinely has an unusual number.
+  const [phoneOverride, setPhoneOverride] = useState(false);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!state.firstName.trim() || !state.lastName.trim()) {
       toast.error("First and last name are required");
+      return;
+    }
+    if (!phoneOverride && !validatePhoneOrToast()) {
+      setPhoneOverride(true);
       return;
     }
     startTransition(async () => {

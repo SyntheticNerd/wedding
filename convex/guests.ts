@@ -100,21 +100,51 @@ export const rollups = query({
       all.filter((g) => g.side === s).length;
     const byStatus = (s: Doc<"guests">["rsvpStatus"]) =>
       all.filter((g) => g.rsvpStatus === s).length;
+
     const plusOnesAllowed = all.filter((g) => g.plusOneAllowed).length;
-    const plusOnesYes = all.filter((g) => g.plusOneRsvp === "yes").length;
-    const attending =
-      byStatus("yes") + plusOnesYes;
+    // Defensive: only count plus-ones whose primary still has the toggle on.
+    // Prevents stale `plusOneRsvp` from a previously-allowed guest from
+    // inflating the rollups if the form layer ever leaks a stale value.
+    const plusOnesYes = all.filter(
+      (g) => g.plusOneAllowed && g.plusOneRsvp === "yes",
+    ).length;
+    const plusOnesNo = all.filter(
+      (g) => g.plusOneAllowed && g.plusOneRsvp === "no",
+    ).length;
+    // A plus-one is "potential" if it's been allowed but the guest's primary
+    // RSVP isn't "no" and the plus-one hasn't explicitly declined.
+    const plusOnesPending = all.filter(
+      (g) =>
+        g.plusOneAllowed &&
+        g.plusOneRsvp == null &&
+        g.rsvpStatus !== "no",
+    ).length;
+
+    const yes = byStatus("yes");
+    const pending = byStatus("pending");
+    const no = byStatus("no");
+
+    // Today's confirmed seats.
+    const confirmed = yes + plusOnesYes;
+    // Worst-case if every pending guest + every unresolved plus-one says yes.
+    const projectedMax = yes + pending + plusOnesYes + plusOnesPending;
+
     return {
       total,
       bride: bySide("bride"),
       groom: bySide("groom"),
       both: bySide("both"),
-      yes: byStatus("yes"),
-      no: byStatus("no"),
-      pending: byStatus("pending"),
+      yes,
+      no,
+      pending,
       plusOnesAllowed,
       plusOnesYes,
-      attending,
+      plusOnesNo,
+      plusOnesPending,
+      // Headcount terminology kept as alias for older callers.
+      attending: confirmed,
+      confirmed,
+      projectedMax,
     };
   },
 });
@@ -185,6 +215,11 @@ export const update = mutation({
         : existing.phoneE164;
 
     const before = pickAuditFields(existing);
+    const nextRsvpStatus = args.rsvpStatus ?? existing.rsvpStatus;
+    const rsvpAt =
+      nextRsvpStatus !== existing.rsvpStatus && nextRsvpStatus !== "pending"
+        ? Date.now()
+        : existing.rsvpAt;
     const next = {
       firstName: args.firstName.trim(),
       lastName: args.lastName.trim(),
@@ -195,7 +230,8 @@ export const update = mutation({
       invitationId: args.invitationId ?? existing.invitationId,
       side: args.side,
       isChild: args.isChild ?? existing.isChild,
-      rsvpStatus: args.rsvpStatus ?? existing.rsvpStatus,
+      rsvpStatus: nextRsvpStatus,
+      rsvpAt,
       rsvpOffline: args.rsvpOffline ?? existing.rsvpOffline,
       plusOneAllowed: args.plusOneAllowed ?? existing.plusOneAllowed,
       plusOneName: args.plusOneName,
@@ -225,16 +261,40 @@ export const update = mutation({
 export const softDelete = mutation({
   args: { id: v.id("guests") },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-    await ctx.db.patch(args.id, { deletedAt: Date.now() });
+    const { userId } = await requireAdmin(ctx);
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Guest not found");
+    const now = Date.now();
+    await ctx.db.patch(args.id, { deletedAt: now });
+    await ctx.db.insert("rsvpAuditLog", {
+      guestId: args.id,
+      invitationId: existing.invitationId,
+      changedAt: now,
+      changedBy: "admin",
+      changedByUserId: userId,
+      before: { deletedAt: undefined },
+      after: { deletedAt: now },
+    });
   },
 });
 
 export const restore = mutation({
   args: { id: v.id("guests") },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    const { userId } = await requireAdmin(ctx);
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Guest not found");
+    const now = Date.now();
     await ctx.db.patch(args.id, { deletedAt: undefined });
+    await ctx.db.insert("rsvpAuditLog", {
+      guestId: args.id,
+      invitationId: existing.invitationId,
+      changedAt: now,
+      changedBy: "admin",
+      changedByUserId: userId,
+      before: { deletedAt: existing.deletedAt },
+      after: { deletedAt: undefined },
+    });
   },
 });
 

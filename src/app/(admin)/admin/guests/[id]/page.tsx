@@ -46,7 +46,7 @@ export default function GuestDetailPage({
         >
           ← Back to guest list
         </Link>
-        <h1 className="font-heading text-3xl mt-2">
+        <h1 className="font-heading text-3xl mt-2 break-words">
           {guest.firstName} {guest.lastName}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { COUPLE } from "@/lib/site-config";
-import { EnsureAdminProfile } from "@/components/admin/ensure-admin-profile";
+import { AdminShell } from "@/components/admin/admin-shell";
 
 // Admin pages are auth-gated and rely on a runtime Convex connection;
 // they must not be statically prerendered at build.
@@ -20,7 +20,6 @@ export default async function AdminLayout({
   }
   return (
     <div className="min-h-screen flex flex-col">
-      <EnsureAdminProfile />
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link
@@ -52,11 +51,12 @@ export default async function AdminLayout({
               Settings
             </Link>
             <UserButton />
-
           </nav>
         </div>
       </header>
-      <main className="flex-1 container mx-auto px-6 py-8">{children}</main>
+      <main className="flex-1 container mx-auto px-6 py-8">
+        <AdminShell>{children}</AdminShell>
+      </main>
     </div>
   );
 }

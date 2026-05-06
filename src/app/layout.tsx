@@ -20,7 +20,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: `${COUPLE.bride} & ${COUPLE.groom}`,
+  title: `${COUPLE.groom} ${COUPLE.joiner} ${COUPLE.bride}`,
   description: "Our wedding website.",
 };
 
@@ -35,7 +35,13 @@ export default function RootLayout({
       className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ClerkProvider>
+        <ClerkProvider
+          afterSignOutUrl="/"
+          signInUrl="/sign-in"
+          signUpUrl="/sign-in"
+          signInForceRedirectUrl="/admin"
+          signUpForceRedirectUrl="/admin"
+        >
           <ConvexClerkProvider>
             {children}
             <Toaster richColors />

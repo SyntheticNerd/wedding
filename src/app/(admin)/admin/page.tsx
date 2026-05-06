@@ -1,5 +1,6 @@
 import { GuestTable } from "@/components/admin/guest-table";
 import { RollupChips } from "@/components/admin/rollup-chips";
+import { CapacityBar } from "@/components/admin/capacity-bar";
 
 export default function AdminGuestsPage() {
   return (
@@ -12,6 +13,7 @@ export default function AdminGuestsPage() {
         </p>
       </div>
       <RollupChips />
+      <CapacityBar />
       <GuestTable />
     </div>
   );
