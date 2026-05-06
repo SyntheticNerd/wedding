@@ -12,6 +12,9 @@ import type * as adminProfiles from "../adminProfiles.js";
 import type * as guests from "../guests.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_normalize from "../lib/normalize.js";
+import type * as notifications from "../notifications.js";
+import type * as notificationsData from "../notificationsData.js";
+import type * as rsvp from "../rsvp.js";
 import type * as settings from "../settings.js";
 
 import type {
@@ -25,6 +28,9 @@ declare const fullApi: ApiFromModules<{
   guests: typeof guests;
   "lib/auth": typeof lib_auth;
   "lib/normalize": typeof lib_normalize;
+  notifications: typeof notifications;
+  notificationsData: typeof notificationsData;
+  rsvp: typeof rsvp;
   settings: typeof settings;
 }>;
 

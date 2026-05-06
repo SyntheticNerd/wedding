@@ -31,7 +31,24 @@ export const ensureProfile = mutation({
         q.eq("clerkUserId", identity.subject),
       )
       .first();
-    if (existing) return existing._id;
+    const email = identity.email ?? undefined;
+    if (existing) {
+      // Backfill email + freshen display name from Clerk on each visit so
+      // the notification action always has the latest contact info.
+      const patch: { email?: string; displayName?: string } = {};
+      if (email && existing.email !== email) patch.email = email;
+      if (
+        identity.name &&
+        existing.displayName !== identity.name &&
+        !args.displayName
+      ) {
+        patch.displayName = identity.name;
+      }
+      if (Object.keys(patch).length > 0) {
+        await ctx.db.patch(existing._id, patch);
+      }
+      return existing._id;
+    }
     const id = await ctx.db.insert("adminProfiles", {
       clerkUserId: identity.subject,
       displayName:
@@ -39,6 +56,7 @@ export const ensureProfile = mutation({
         identity.name ??
         identity.email ??
         "Admin",
+      email,
       emailNotificationsEnabled: true,
     });
     return id;

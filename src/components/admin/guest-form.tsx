@@ -280,7 +280,7 @@ export function GuestForm({ mode, initial }: Props) {
             placeholder="auto"
           />
         </Field>
-        <div className="flex items-center gap-2 pt-7">
+        <div className="flex items-center gap-2 pt-2 sm:pt-7">
           <Checkbox
             checked={state.isChild}
             onCheckedChange={(v) =>
@@ -317,7 +317,7 @@ export function GuestForm({ mode, initial }: Props) {
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="flex items-center gap-2 pt-7">
+              <div className="flex items-center gap-2 pt-2 sm:pt-7">
                 <Checkbox
                   checked={state.rsvpOffline}
                   onCheckedChange={(v) =>
@@ -477,7 +477,9 @@ export function GuestForm({ mode, initial }: Props) {
         )}
       </Accordion>
 
-      <div className="flex items-center justify-between pt-4 border-t border-border">
+      {/* Sticky on mobile so Save is always one tap away from any field;
+          static at sm+ to preserve desktop reading rhythm. */}
+      <div className="sticky bottom-0 -mx-6 sm:mx-0 px-6 sm:px-0 py-3 sm:py-4 bg-background/95 sm:bg-transparent backdrop-blur sm:backdrop-blur-none border-t border-border flex items-center justify-between gap-2">
         <div className="flex gap-2">
           <Button type="submit" disabled={pending}>
             {mode === "create" ? "Add guest" : "Save changes"}

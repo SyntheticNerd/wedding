@@ -19,42 +19,50 @@ export default async function AdminLayout({
     redirect("/sign-in");
   }
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col print:bg-white">
+      <header className="border-b border-border bg-card print:hidden">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
           <Link
             href="/admin"
-            className="font-heading text-xl tracking-tight"
+            className="font-heading text-lg sm:text-xl tracking-tight shrink-0"
           >
             {COUPLE.groom} {COUPLE.joiner} {COUPLE.bride}
-            <span className="ml-3 text-xs uppercase tracking-widest text-muted-foreground font-sans">
+            <span className="hidden sm:inline ml-3 text-xs uppercase tracking-widest text-muted-foreground font-sans">
               admin
             </span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm">
+          <nav className="flex items-center gap-3 sm:gap-6 text-[13px] sm:text-sm">
             <Link
               href="/admin"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               Guests
             </Link>
             <Link
+              href="/admin/invitations"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
+            >
+              <span className="sm:hidden">QR</span>
+              <span className="hidden sm:inline">Invitations</span>
+            </Link>
+            <Link
               href="/admin/import"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
               Import
             </Link>
             <Link
               href="/admin/settings"
-              className="text-foreground hover:text-foreground/70"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
-              Settings
+              <span className="sm:hidden">Set</span>
+              <span className="hidden sm:inline">Settings</span>
             </Link>
             <UserButton />
           </nav>
         </div>
       </header>
-      <main className="flex-1 container mx-auto px-6 py-8">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 print:px-0 print:py-0">
         <AdminShell>{children}</AdminShell>
       </main>
     </div>

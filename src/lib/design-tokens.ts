@@ -11,7 +11,7 @@
 
 export const palette = {
   cream: "#FAF6F1",
-  blush: "#E9C9C1",
+  blush: "#A95E55", // deep dusty rose — matches oklch(0.55 0.09 28). Soften with /40-/60 opacity for accents.
   sage: "#9CAE9C",
   charcoal: "#2E2A26",
   white: "#FFFFFF",

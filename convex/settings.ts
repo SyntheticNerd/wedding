@@ -48,3 +48,27 @@ export const all = query({
     return Object.fromEntries(rows.map((r) => [r.key, r.value]));
   },
 });
+
+/**
+ * Public-readable subset of settings for use on unauthenticated pages
+ * (e.g. /rsvp). Only exposes keys that are safe to surface to guests.
+ */
+const PUBLIC_KEYS = new Set([
+  "lockedAt",
+  "weddingDate",
+  "coupleNames",
+  "venueName",
+  "venueLocation",
+]);
+
+export const publicSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("settings").collect();
+    const out: Record<string, unknown> = {};
+    for (const r of rows) {
+      if (PUBLIC_KEYS.has(r.key)) out[r.key] = r.value;
+    }
+    return out;
+  },
+});

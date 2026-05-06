@@ -161,6 +161,58 @@ export const auditFor = query({
   },
 });
 
+/**
+ * Group active guests by invitationId for the admin invitations page.
+ * Each group is a household — used to render printable QR cards that link
+ * to /rsvp?invitation=<id>.
+ */
+export const listInvitations = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const all = await ctx.db.query("guests").collect();
+    const groups = new Map<
+      string,
+      {
+        invitationId: string;
+        guests: Array<{
+          id: Id<"guests">;
+          firstName: string;
+          lastName: string;
+          rsvpStatus: Doc<"guests">["rsvpStatus"];
+          hasPhone: boolean;
+        }>;
+      }
+    >();
+    for (const g of all) {
+      if (g.deletedAt) continue;
+      const entry = groups.get(g.invitationId) ?? {
+        invitationId: g.invitationId,
+        guests: [],
+      };
+      entry.guests.push({
+        id: g._id,
+        firstName: g.firstName,
+        lastName: g.lastName,
+        rsvpStatus: g.rsvpStatus,
+        hasPhone: Boolean(g.phoneE164),
+      });
+      groups.set(g.invitationId, entry);
+    }
+    // Sort each group's guests by first name; sort groups by primary last name.
+    const out = Array.from(groups.values()).map((g) => ({
+      ...g,
+      guests: g.guests.sort((a, b) =>
+        a.firstName.localeCompare(b.firstName),
+      ),
+    }));
+    out.sort((a, b) =>
+      (a.guests[0]?.lastName ?? "").localeCompare(b.guests[0]?.lastName ?? ""),
+    );
+    return out;
+  },
+});
+
 /* ----------------------------------------------------------------------
    Mutations
    -------------------------------------------------------------------- */
