@@ -72,6 +72,16 @@ export default function ImportPage() {
         );
         continue;
       }
+      // Phone is required for adults — public RSVP lookup is keyed on
+      // last-4. Children RSVP via a parent's QR/invitation link.
+      const isChildRow =
+        r.isChild?.toLowerCase() === "true" || false;
+      if (!isChildRow && !r.phoneRaw?.trim()) {
+        errs.push(
+          `Row ${i + 2}: phone is required for adults (or set isChild=true)`,
+        );
+        continue;
+      }
       rows.push({
         firstName: r.firstName.trim(),
         lastName: r.lastName.trim(),

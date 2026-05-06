@@ -173,6 +173,14 @@ export function GuestForm({ mode, initial }: Props) {
       toast.error("First and last name are required");
       return;
     }
+    // Phone is required for adults — they look themselves up via last-4 on
+    // /rsvp. Children RSVP via the parent's QR link, so phone is optional.
+    if (!state.isChild && !state.phoneRaw.trim()) {
+      toast.error(
+        "Phone is required (or check 'Child' if this guest doesn't have one)",
+      );
+      return;
+    }
     if (!phoneOverride && !validatePhoneOrToast()) {
       setPhoneOverride(true);
       return;
@@ -236,12 +244,18 @@ export function GuestForm({ mode, initial }: Props) {
         </Field>
         <Field
           label="Phone"
-          hint="Any format — normalized to E.164 on save"
+          required={!state.isChild}
+          hint={
+            state.isChild
+              ? "Optional for children"
+              : "Required — guests look themselves up by last 4 digits"
+          }
         >
           <Input
             value={state.phoneRaw}
             onChange={(e) => handleChange("phoneRaw", e.target.value)}
             placeholder="(415) 555-1212"
+            required={!state.isChild}
           />
         </Field>
         <Field label="Email">
