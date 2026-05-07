@@ -84,6 +84,7 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
   // Reset toggles every time the dialog closes — covers Cancel button,
   // X button, Escape key, click-outside, and post-apply close uniformly.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!open) setState(blank);
   }, [open]);
 
