@@ -77,7 +77,7 @@ export function GuestTable() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-2">
           <Input
-            placeholder="Search by name, alias, or email"
+            placeholder="Search name, alias, email, or invitation"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="sm:max-w-sm"

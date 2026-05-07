@@ -62,13 +62,25 @@ export const list = query({
       )
       .filter((g) => {
         if (!args.search) return true;
-        const q = nameKey(args.search);
-        if (!q) return true;
-        if (nameKey(g.firstName).includes(q)) return true;
-        if (nameKey(g.lastName).includes(q)) return true;
-        if (g.aliases.some((a: string) => nameKey(a).includes(q))) return true;
-        if (g.email && g.email.toLowerCase().includes(q)) return true;
-        return false;
+        // Split on whitespace so "John Smith" matches by checking "john" and
+        // "smith" independently across all searchable fields. Without this, a
+        // multi-token query never matches because no single field contains the
+        // whole string.
+        const tokens = args.search
+          .split(/\s+/)
+          .map((t) => nameKey(t))
+          .filter(Boolean);
+        if (tokens.length === 0) return true;
+        const haystacks = [
+          nameKey(g.firstName),
+          nameKey(g.lastName),
+          ...g.aliases.map((a: string) => nameKey(a)),
+          (g.email ?? "").toLowerCase(),
+          g.invitationId.toLowerCase(),
+        ];
+        return tokens.every((token) =>
+          haystacks.some((h) => h.includes(token)),
+        );
       })
       .sort((a, b) => {
         const byLast = a.lastName.localeCompare(b.lastName);
