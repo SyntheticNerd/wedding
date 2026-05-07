@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 import { COUPLE } from "@/lib/site-config";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { LogoMark } from "@/components/site/logo";
+import { MessagesNavLink } from "@/components/admin/messages-nav-link";
 
 // Admin pages are auth-gated and rely on a runtime Convex connection;
 // they must not be statically prerendered at build.
@@ -53,6 +54,7 @@ export default async function AdminLayout({
             >
               Import
             </Link>
+            <MessagesNavLink />
             <Link
               href="/admin/settings"
               className="text-foreground hover:text-foreground/70 py-2 -my-2"

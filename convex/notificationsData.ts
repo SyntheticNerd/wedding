@@ -20,3 +20,12 @@ export const loadNotificationContext = internalQuery({
     return { guest, recipients };
   },
 });
+
+export const loadMessageContext = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
+    return { message };
+  },
+});

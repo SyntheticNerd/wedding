@@ -183,5 +183,112 @@ function escape(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/* ----------------------------------------------------------------------
+   Contact-form messages → admin inbox
+   -------------------------------------------------------------------- */
+
+const CONTACT_RECIPIENT =
+  process.env.CONTACT_NOTIFICATION_EMAIL ?? "andrewandjewel@gmail.com";
+
+export const sendContactMessageNotification = internalAction({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    const data = await ctx.runQuery(
+      internal.notificationsData.loadMessageContext,
+      { messageId: args.messageId },
+    );
+    if (!data) return null;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn(
+        "[notifications] RESEND_API_KEY not set — skipping contact message " +
+          `email for ${args.messageId}`,
+      );
+      return null;
+    }
+    const fromEmail =
+      process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+    const adminBaseUrl =
+      process.env.ADMIN_BASE_URL ?? "https://www.andrewandjewel.com";
+
+    const resend = new Resend(apiKey);
+    const adminUrl = `${adminBaseUrl}/admin/messages`;
+    const subject = `[Andrew & Jewel] ${data.message.subject}`;
+    const html = buildMessageHtml({ message: data.message, adminUrl });
+    const text = buildMessageText({ message: data.message, adminUrl });
+
+    try {
+      await resend.emails.send({
+        from: fromEmail,
+        to: CONTACT_RECIPIENT,
+        replyTo: data.message.email,
+        subject,
+        html,
+        text,
+      });
+    } catch (err) {
+      console.error(
+        `[notifications] failed to send contact message email:`,
+        err,
+      );
+    }
+    return null;
+  },
+});
+
+function buildMessageText({
+  message,
+  adminUrl,
+}: {
+  message: Doc<"messages">;
+  adminUrl: string;
+}): string {
+  const lines = [
+    `From: ${message.name} <${message.email}>`,
+    message.phoneRaw ? `Phone: ${message.phoneRaw}` : null,
+    `Subject: ${message.subject}`,
+    "",
+    message.message,
+    "",
+    `Open in admin: ${adminUrl}`,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function buildMessageHtml({
+  message,
+  adminUrl,
+}: {
+  message: Doc<"messages">;
+  adminUrl: string;
+}): string {
+  const phoneRow = message.phoneRaw
+    ? row("Phone", escape(message.phoneRaw))
+    : "";
+  return `<!doctype html>
+<html>
+  <body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#FAF6F1;color:#2E2A26;padding:24px;">
+    <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #eee;">
+      <p style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#888;margin:0;">New message</p>
+      <h1 style="font-family:Cormorant Garamond,Georgia,serif;font-size:28px;line-height:1.2;margin:8px 0 16px;">
+        ${escape(message.subject)}
+      </h1>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
+        ${row("From", `${escape(message.name)} &lt;<a href="mailto:${escape(message.email)}" style="color:#5b8a5e;">${escape(message.email)}</a>&gt;`)}
+        ${phoneRow}
+      </table>
+      <div style="white-space:pre-wrap;background:#FAF6F1;border-radius:8px;padding:16px;line-height:1.5;">
+        ${escape(message.message)}
+      </div>
+      <p style="margin-top:24px;">
+        <a href="${escape(adminUrl)}" style="color:#5b8a5e;font-weight:600;">Open in admin →</a>
+      </p>
+    </div>
+  </body>
+</html>`;
+}
+
 // Re-export for type discoverability
 export type RsvpNotificationGuestId = Id<"guests">;
+export type ContactMessageId = Id<"messages">;

@@ -79,4 +79,22 @@ export default defineSchema({
     email: v.optional(v.string()),
     emailNotificationsEnabled: v.boolean(),
   }).index("by_clerk_user", ["clerkUserId"]),
+
+  /* Public "have a question?" contact form submissions. Auth-free, so
+     length caps + a honeypot field on the public mutation are the only
+     defenses. Admin reads via /admin/messages. */
+  messages: defineTable({
+    name: v.string(),
+    email: v.string(),
+    subject: v.string(),
+    message: v.string(),
+    phoneRaw: v.optional(v.string()),
+    phoneE164: v.optional(v.string()),
+    createdAt: v.number(),
+    readAt: v.optional(v.number()),
+    repliedAt: v.optional(v.number()),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_created", ["createdAt"])
+    .index("by_unread", ["readAt", "createdAt"]),
 });
