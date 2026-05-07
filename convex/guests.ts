@@ -266,14 +266,6 @@ export const update = mutation({
       args.phoneRaw !== undefined
         ? normalizePhoneToE164(args.phoneRaw) ?? undefined
         : existing.phoneE164;
-    // Mirror the create-time invariant on every edit so legacy phoneless
-    // adult records get backfilled when an admin saves them.
-    const willBeChild = args.isChild ?? existing.isChild;
-    if (!willBeChild && !phoneE164) {
-      throw new Error(
-        "Phone is required for adult guests (or mark as Child)",
-      );
-    }
 
     const before = pickAuditFields(existing);
     const nextRsvpStatus = args.rsvpStatus ?? existing.rsvpStatus;
@@ -390,15 +382,6 @@ export const bulkImport = mutation({
       const phoneE164 = r.phoneRaw
         ? normalizePhoneToE164(r.phoneRaw) ?? undefined
         : undefined;
-      // Defense-in-depth: client preview should already block this, but
-      // refuse to import phoneless adult rows so the constraint can't be
-      // bypassed by hitting the mutation directly.
-      const isChild = r.isChild ?? false;
-      if (!isChild && !phoneE164) {
-        throw new Error(
-          `Bulk import row "${r.firstName} ${r.lastName}": phone required for adults`,
-        );
-      }
       await ctx.db.insert("guests", {
         firstName: r.firstName.trim(),
         lastName: r.lastName.trim(),
