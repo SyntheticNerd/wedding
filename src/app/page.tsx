@@ -33,10 +33,16 @@ export default function Home() {
           <div className="mt-12 flex justify-center">
             <Link
               href="/rsvp"
+              // Inline padding bypasses the size variant's sm:px-2.5
+              // override. The +0.3em on the left compensates for the
+              // trailing letter-spacing so the glyphs read as centered.
+              style={{
+                paddingLeft: "calc(2.5rem + 0.3em)",
+                paddingRight: "2.5rem",
+              }}
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "h-12 px-10 pl-[calc(2.5rem+0.3em)] text-sm tracking-[0.3em] uppercase",
-                "bg-blush text-cream hover:bg-blush/90 hover:text-cream",
+                "h-12 text-sm tracking-[0.3em] uppercase",
               )}
             >
               RSVP
