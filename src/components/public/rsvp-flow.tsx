@@ -18,7 +18,6 @@ type Candidate = {
   firstName: string;
   lastName: string;
   postalSuffix?: string;
-  hasPhone: boolean;
   rsvpStatus: "pending" | "yes" | "no";
 };
 
@@ -27,14 +26,8 @@ type Candidate = {
 type Step =
   | { kind: "lookup" }
   | { kind: "invitation"; candidates: Candidate[] }
-  | { kind: "invitation-confirm"; candidate: Candidate }
-  | { kind: "many"; candidates: Candidate[]; last4: string }
-  | {
-      kind: "form";
-      guestId: Id<"guests">;
-      last4?: string;
-      invitationId?: string;
-    }
+  | { kind: "many"; candidates: Candidate[] }
+  | { kind: "form"; guestId: Id<"guests"> }
   | { kind: "success"; firstName: string; rsvpStatus: "yes" | "no" };
 
 interface Props {
@@ -66,23 +59,19 @@ export function RsvpFlow({ initialInvitationId }: Props) {
     case "lookup":
       return (
         <LookupForm
-          onMatch={(result, last4) => {
+          onMatch={(result) => {
             if (result.kind === "none") {
               toast.error(
-                "We couldn't find that. Double-check the spelling and the last 4 digits of the phone we'd reach you at.",
+                "We couldn't find that name. Double-check the spelling and try again.",
                 { duration: 7000 },
               );
               return;
             }
             if (result.kind === "one") {
-              setStep({
-                kind: "form",
-                guestId: result.candidate.id,
-                last4,
-              });
+              setStep({ kind: "form", guestId: result.candidate.id });
               return;
             }
-            setStep({ kind: "many", candidates: result.candidates, last4 });
+            setStep({ kind: "many", candidates: result.candidates });
           }}
         />
       );
@@ -91,24 +80,8 @@ export function RsvpFlow({ initialInvitationId }: Props) {
         <InvitationChooser
           invitationId={initialInvitationId!}
           onPick={(candidate) =>
-            setStep({ kind: "invitation-confirm", candidate })
+            setStep({ kind: "form", guestId: candidate.id })
           }
-        />
-      );
-    case "invitation-confirm":
-      return (
-        <InvitationConfirm
-          candidate={step.candidate}
-          invitationId={initialInvitationId!}
-          onConfirmed={(last4) =>
-            setStep({
-              kind: "form",
-              guestId: step.candidate.id,
-              last4,
-              invitationId: initialInvitationId,
-            })
-          }
-          onBack={() => setStep({ kind: "invitation", candidates: [] })}
         />
       );
     case "many":
@@ -116,11 +89,7 @@ export function RsvpFlow({ initialInvitationId }: Props) {
         <ManyChooser
           candidates={step.candidates}
           onPick={(candidate) =>
-            setStep({
-              kind: "form",
-              guestId: candidate.id,
-              last4: step.last4,
-            })
+            setStep({ kind: "form", guestId: candidate.id })
           }
         />
       );
@@ -128,8 +97,6 @@ export function RsvpFlow({ initialInvitationId }: Props) {
       return (
         <RsvpForm
           guestId={step.guestId}
-          last4={step.last4}
-          invitationId={step.invitationId}
           onSuccess={(firstName, rsvpStatus) =>
             setStep({ kind: "success", firstName, rsvpStatus })
           }
@@ -199,7 +166,7 @@ function ClosedCard() {
   );
 }
 
-/* --- Step: Name + last4 lookup --- */
+/* --- Step: Name lookup --- */
 
 function LookupForm({
   onMatch,
@@ -209,20 +176,17 @@ function LookupForm({
       | { kind: "none" }
       | { kind: "one"; candidate: Candidate }
       | { kind: "many"; candidates: Candidate[] },
-    last4: string,
   ) => void;
 }) {
   const convex = useConvex();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [last4, setLast4] = useState("");
   const [pending, startTransition] = useTransition();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed4 = last4.replace(/\D/g, "").slice(-4);
-    if (!firstName.trim() || !lastName.trim() || trimmed4.length !== 4) {
-      toast.error("First name, last name, and last 4 digits — all three.");
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("First name and last name are both required.");
       return;
     }
     startTransition(async () => {
@@ -230,9 +194,8 @@ function LookupForm({
         const result = await convex.query(api.rsvp.findGuestForRsvp, {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          last4: trimmed4,
         });
-        onMatch(result, trimmed4);
+        onMatch(result);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Lookup failed");
       }
@@ -245,8 +208,7 @@ function LookupForm({
         So glad you&apos;re here.
       </p>
       <p className="text-center text-xs text-muted-foreground mb-6 leading-relaxed">
-        Enter your name and the last 4 digits of your phone to find your
-        invitation.
+        Enter your name to find your invitation.
       </p>
       <form onSubmit={onSubmit} className="space-y-4">
         <FieldStack>
@@ -267,21 +229,6 @@ function LookupForm({
             value={lastName}
             autoComplete="family-name"
             onChange={(e) => setLastName(e.target.value)}
-            required
-          />
-        </FieldStack>
-        <FieldStack>
-          <Label htmlFor="last4">Last 4 digits of your phone</Label>
-          <Input
-            id="last4"
-            value={last4}
-            inputMode="numeric"
-            maxLength={4}
-            pattern="[0-9]*"
-            placeholder="1234"
-            onChange={(e) =>
-              setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
             required
           />
         </FieldStack>
@@ -367,104 +314,6 @@ function InvitationChooser({
   );
 }
 
-/* --- Step: Invitation flow — confirm with last 4 (or skip if no phone) --- */
-
-function InvitationConfirm({
-  candidate,
-  invitationId,
-  onConfirmed,
-  onBack,
-}: {
-  candidate: Candidate;
-  invitationId: string;
-  onConfirmed: (last4?: string) => void;
-  onBack: () => void;
-}) {
-  const convex = useConvex();
-  const [last4, setLast4] = useState("");
-  const [pending, startTransition] = useTransition();
-
-  // If the guest has no phone on file, the invitation token alone is enough.
-  // Skip past this step on next tick — calling state setters during render is
-  // unsafe.
-  useEffect(() => {
-    if (!candidate.hasPhone) {
-      onConfirmed(undefined);
-    }
-  }, [candidate.hasPhone, onConfirmed]);
-  if (!candidate.hasPhone) {
-    return <FlowSkeleton />;
-  }
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed4 = last4.replace(/\D/g, "").slice(-4);
-    if (trimmed4.length !== 4) {
-      toast.error("Need 4 digits.");
-      return;
-    }
-    startTransition(async () => {
-      try {
-        const guest = await convex.query(api.rsvp.getGuestForRsvp, {
-          guestId: candidate.id,
-          last4: trimmed4,
-          invitationId,
-        });
-        if (!guest) {
-          toast.error(
-            "That doesn't match the phone we have on file. Try again, or contact us.",
-          );
-          return;
-        }
-        onConfirmed(trimmed4);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Verification failed");
-      }
-    });
-  }
-
-  return (
-    <Card>
-      <p className="text-center text-sm text-muted-foreground mb-6 leading-relaxed">
-        Hi <span className="text-charcoal font-medium">{candidate.firstName}</span>!
-        To confirm, please enter the last 4 digits of your phone.
-      </p>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <FieldStack>
-          <Label htmlFor="last4">Last 4 digits</Label>
-          <Input
-            id="last4"
-            value={last4}
-            inputMode="numeric"
-            maxLength={4}
-            pattern="[0-9]*"
-            placeholder="1234"
-            onChange={(e) =>
-              setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
-            required
-            autoFocus
-          />
-        </FieldStack>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="flex-1"
-            disabled={pending}
-          >
-            Back
-          </Button>
-          <Button type="submit" disabled={pending} className="flex-1 h-12">
-            {pending ? "…" : "Continue"}
-          </Button>
-        </div>
-      </form>
-    </Card>
-  );
-}
-
 /* --- Step: Multi-match chooser (same first+last name, different households) --- */
 
 function ManyChooser({
@@ -513,28 +362,20 @@ type LoadedGuest = NonNullable<
 
 function RsvpForm({
   guestId,
-  last4,
-  invitationId,
   onSuccess,
 }: {
   guestId: Id<"guests">;
-  last4?: string;
-  invitationId?: string;
   onSuccess: (firstName: string, rsvpStatus: "yes" | "no") => void;
 }) {
-  const guest = useQuery(api.rsvp.getGuestForRsvp, {
-    guestId,
-    last4,
-    invitationId,
-  });
+  const guest = useQuery(api.rsvp.getGuestForRsvp, { guestId });
 
   if (guest === undefined) return <FlowSkeleton />;
   if (guest === null) {
     return (
       <Card>
-        <h2 className="font-heading text-2xl mb-3">Verification failed</h2>
+        <h2 className="font-heading text-2xl mb-3">Invitation not found</h2>
         <p className="text-muted-foreground mb-6">
-          We couldn&apos;t verify that link. Please try the lookup again.
+          We couldn&apos;t load that invitation. Please try the lookup again.
         </p>
         <Link
           href="/rsvp"
@@ -552,8 +393,6 @@ function RsvpForm({
       key={guest.id}
       guest={guest}
       guestId={guestId}
-      last4={last4}
-      invitationId={invitationId}
       onSuccess={onSuccess}
     />
   );
@@ -562,14 +401,10 @@ function RsvpForm({
 function RsvpFormFields({
   guest,
   guestId,
-  last4,
-  invitationId,
   onSuccess,
 }: {
   guest: LoadedGuest;
   guestId: Id<"guests">;
-  last4?: string;
-  invitationId?: string;
   onSuccess: (firstName: string, rsvpStatus: "yes" | "no") => void;
 }) {
   const submit = useMutation(api.rsvp.submitRsvp);
@@ -594,8 +429,6 @@ function RsvpFormFields({
       try {
         await submit({
           guestId,
-          last4,
-          invitationId,
           rsvpStatus,
           plusOneRsvp:
             guest.plusOneAllowed && rsvpStatus === "yes"
