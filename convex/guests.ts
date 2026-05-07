@@ -391,6 +391,13 @@ export const bulkUpdate = mutation({
       if (patch.isChild !== undefined) next.isChild = patch.isChild;
       if (patch.plusOneAllowed !== undefined) {
         next.plusOneAllowed = patch.plusOneAllowed;
+        // Revoking the plus-one allowance must also clear any prior
+        // plus-one details so a downstream view doesn't surface a +1
+        // for someone who's no longer allowed one.
+        if (!patch.plusOneAllowed) {
+          next.plusOneRsvp = undefined;
+          next.plusOneName = undefined;
+        }
       }
       if (patch.rsvpStatus !== undefined) {
         next.rsvpStatus = patch.rsvpStatus;

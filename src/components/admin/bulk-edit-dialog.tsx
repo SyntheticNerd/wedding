@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api, type Id } from "@/lib/convex";
@@ -81,9 +81,11 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
   const [pending, startTransition] = useTransition();
   const bulkUpdate = useMutation(api.guests.bulkUpdate);
 
-  function reset() {
-    setState(blank);
-  }
+  // Reset toggles every time the dialog closes — covers Cancel button,
+  // X button, Escape key, click-outside, and post-apply close uniformly.
+  useEffect(() => {
+    if (!open) setState(blank);
+  }, [open]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,19 +98,44 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
     if (state.rsvpStatus.on) patch.rsvpStatus = state.rsvpStatus.value;
     if (state.rsvpOffline.on) patch.rsvpOffline = state.rsvpOffline.value;
     if (state.invitationId.on) {
-      patch.invitationId = state.invitationId.value.trim();
+      const trimmed = state.invitationId.value.trim();
+      if (!trimmed) {
+        toast.error("Invitation can't be empty when toggled.");
+        return;
+      }
+      patch.invitationId = trimmed;
     }
     if (state.address.on) {
-      patch.address = {
+      const a = {
         line1: state.address.line1.trim(),
-        line2: state.address.line2.trim() || undefined,
+        line2: state.address.line2.trim(),
         city: state.address.city.trim(),
         region: state.address.region.trim(),
         postalCode: state.address.postalCode.trim(),
         country: state.address.country.trim(),
       };
+      const missing = (
+        ["line1", "city", "region", "postalCode", "country"] as const
+      ).filter((k) => !a[k]);
+      if (missing.length > 0) {
+        toast.error(`Address needs: ${missing.join(", ")}`);
+        return;
+      }
+      patch.address = {
+        line1: a.line1,
+        line2: a.line2 || undefined,
+        city: a.city,
+        region: a.region,
+        postalCode: a.postalCode,
+        country: a.country,
+      };
     }
     if (state.adminNotes.on) {
+      const incoming = state.adminNotes.value.trim();
+      if (state.adminNotes.mode === "append" && !incoming) {
+        toast.error("Append mode needs note content (use Replace to clear).");
+        return;
+      }
       patch.adminNotes = state.adminNotes.value;
       patch.adminNotesMode = state.adminNotes.mode;
     }
@@ -124,7 +151,6 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
         toast.success(
           `Updated ${result.updated} guest${result.updated === 1 ? "" : "s"}.`,
         );
-        reset();
         onApplied();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Bulk edit failed");
@@ -133,13 +159,7 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) reset();
-        onOpenChange(o);
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {ids.length} guest{ids.length === 1 ? "" : "s"}</DialogTitle>

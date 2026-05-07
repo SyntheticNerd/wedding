@@ -202,15 +202,13 @@ export function GuestTable() {
             const checked = selected.has(g._id);
             return (
               <li key={g._id} className="flex items-stretch">
-                <label
-                  className="flex items-center justify-center px-3 cursor-pointer active:bg-muted/50 transition-colors"
-                  aria-label={`Select ${g.firstName} ${g.lastName}`}
-                >
+                <div className="flex items-center justify-center px-4">
                   <Checkbox
                     checked={checked}
                     onCheckedChange={() => toggleOne(g._id)}
+                    aria-label={`Select ${g.firstName} ${g.lastName}`}
                   />
-                </label>
+                </div>
                 <Link
                   href={`/admin/guests/${g._id}`}
                   className="flex-1 flex items-start justify-between gap-3 p-3 active:bg-muted/50 transition-colors"
@@ -311,7 +309,11 @@ export function GuestTable() {
                       window.location.href = `/admin/guests/${g._id}`;
                     }}
                   >
-                    <TableCell data-row-checkbox className="w-10">
+                    <TableCell
+                      data-row-checkbox
+                      className="w-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Checkbox
                         checked={checked}
                         onCheckedChange={() => toggleOne(g._id)}
@@ -376,13 +378,12 @@ export function GuestTable() {
         </Table>
       </div>
 
-      {/* Sticky bulk-action bar — bottom on mobile, top of viewport on desktop. */}
+      {/* Sticky bulk-action bar — bottom of viewport on every breakpoint. */}
       {selectionCount > 0 && (
         <div
           className={cn(
-            "fixed left-0 right-0 z-40 px-4",
-            "bottom-0 sm:bottom-auto sm:top-3",
-            "pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 sm:py-0",
+            "fixed left-0 right-0 bottom-0 z-40 px-4",
+            "pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3",
           )}
           role="region"
           aria-label="Bulk actions"
@@ -422,10 +423,8 @@ export function GuestTable() {
         </div>
       )}
 
-      {/* Mobile: keep the action bar from covering the last row. */}
-      {selectionCount > 0 && (
-        <div aria-hidden className="sm:hidden h-20" />
-      )}
+      {/* Keep the floating action bar from covering the last row. */}
+      {selectionCount > 0 && <div aria-hidden className="h-20" />}
 
       <BulkEditDialog
         open={bulkEditOpen}
