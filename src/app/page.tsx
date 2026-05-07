@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { COUPLE, WEDDING } from "@/lib/site-config";
 import { ContactForm } from "@/components/public/contact-form";
 
@@ -29,13 +30,14 @@ export default function Home() {
           <p className="text-sm tracking-widest uppercase mt-3 text-muted-foreground">
             {WEDDING.location}
           </p>
-          <div className="mt-12">
+          <div className="mt-12 flex justify-center">
             <Link
               href="/rsvp"
-              className={
-                buttonVariants({ variant: "default" }) +
-                " h-12 px-10 text-sm tracking-[0.3em] uppercase"
-              }
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "h-12 px-10 pl-[calc(2.5rem+0.3em)] text-sm tracking-[0.3em] uppercase",
+                "bg-blush text-cream hover:bg-blush/90 hover:text-cream",
+              )}
             >
               RSVP
             </Link>
