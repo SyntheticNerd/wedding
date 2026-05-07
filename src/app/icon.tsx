@@ -18,9 +18,13 @@ export default async function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#FAF6F1",
+          borderRadius: 12,
         }}
       >
-        <AjMark fontSize={64} strokeScale={0.6} />
+        {/* AjMark's tuck overlap pushes total width to ~1.18em, so a 44px
+            font keeps the mark inside a 64px canvas with breathing room
+            on every side once browsers downscale to 16/32. */}
+        <AjMark fontSize={44} strokeScale={0.4} />
       </div>
     ),
     {
