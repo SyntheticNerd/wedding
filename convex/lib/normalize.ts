@@ -20,17 +20,6 @@ export function normalizePhoneToE164(
 }
 
 /**
- * Last 4 digits of a phone number, regardless of formatting.
- * Used for the public RSVP lookup ("name + last 4").
- */
-export function lastFourDigits(input: string | undefined | null): string | null {
-  if (!input) return null;
-  const digits = input.replace(/\D/g, "");
-  if (digits.length < 4) return null;
-  return digits.slice(-4);
-}
-
-/**
  * Lowercase + NFD-normalize + strip diacritics + trim.
  * Used to compare names for the public RSVP lookup so "Núñez" matches "Nunez".
  */

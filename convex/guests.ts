@@ -180,7 +180,6 @@ export const listInvitations = query({
           firstName: string;
           lastName: string;
           rsvpStatus: Doc<"guests">["rsvpStatus"];
-          hasPhone: boolean;
         }>;
       }
     >();
@@ -195,7 +194,6 @@ export const listInvitations = query({
         firstName: g.firstName,
         lastName: g.lastName,
         rsvpStatus: g.rsvpStatus,
-        hasPhone: Boolean(g.phoneE164),
       });
       groups.set(g.invitationId, entry);
     }
@@ -225,13 +223,6 @@ export const create = mutation({
     const phoneE164 = args.phoneRaw
       ? normalizePhoneToE164(args.phoneRaw)
       : undefined;
-    // Adults must have a phone — public RSVP lookup is keyed on last-4. Kids
-    // are exempt because they RSVP via their parent's QR/invitation link.
-    if (!args.isChild && !phoneE164) {
-      throw new Error(
-        "Phone is required for adult guests (or mark as Child)",
-      );
-    }
     const invitationId = args.invitationId ?? generateInvitationId();
     const id = await ctx.db.insert("guests", {
       firstName: args.firstName.trim(),

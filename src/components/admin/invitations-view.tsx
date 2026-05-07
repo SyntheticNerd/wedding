@@ -16,7 +16,6 @@ type Group = {
     firstName: string;
     lastName: string;
     rsvpStatus: "pending" | "yes" | "no";
-    hasPhone: boolean;
   }>;
 };
 
@@ -120,11 +119,6 @@ function InvitationCard({ group, origin }: { group: Group; origin: string }) {
               className="hover:underline truncate"
             >
               {guest.firstName} {guest.lastName}
-              {!guest.hasPhone && (
-                <span className="ml-1.5 text-[10px] text-muted-foreground uppercase tracking-widest">
-                  no phone
-                </span>
-              )}
             </a>
             <RsvpStatusBadge status={guest.rsvpStatus} />
           </li>
