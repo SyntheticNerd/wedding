@@ -3,6 +3,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { COUPLE, WEDDING } from "@/lib/site-config";
 import { ContactForm } from "@/components/public/contact-form";
 
+// Landing page mounts the Convex-backed contact form, which needs the
+// ConvexProvider at runtime. Skip the static prerender pass — same
+// reason /rsvp and /admin opt out.
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   return (
     <div className="flex-1 bg-cream text-charcoal">
