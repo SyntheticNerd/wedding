@@ -9,22 +9,22 @@ import {
 } from "./lib/normalize";
 import { requireAdmin } from "./lib/auth";
 
+const ADDRESS = v.object({
+  line1: v.string(),
+  line2: v.optional(v.string()),
+  city: v.string(),
+  region: v.string(),
+  postalCode: v.string(),
+  country: v.string(),
+});
+
 const guestFields = {
   firstName: v.string(),
   lastName: v.string(),
   aliases: v.optional(v.array(v.string())),
   phoneRaw: v.optional(v.string()),
   email: v.optional(v.string()),
-  address: v.optional(
-    v.object({
-      line1: v.string(),
-      line2: v.optional(v.string()),
-      city: v.string(),
-      region: v.string(),
-      postalCode: v.string(),
-      country: v.string(),
-    }),
-  ),
+  address: v.optional(ADDRESS),
   invitationId: v.optional(v.string()),
   side: SIDE,
   isChild: v.optional(v.boolean()),
@@ -348,6 +348,125 @@ export const restore = mutation({
       before: { deletedAt: existing.deletedAt },
       after: { deletedAt: undefined },
     });
+  },
+});
+
+/* ----------------------------------------------------------------------
+   Bulk update — partial patch applied to a selected set of guests.
+   Only fields explicitly present in `patch` are written; everything
+   else on each guest is preserved.
+   -------------------------------------------------------------------- */
+
+const ADMIN_NOTES_MODE = v.union(v.literal("replace"), v.literal("append"));
+
+export const bulkUpdate = mutation({
+  args: {
+    ids: v.array(v.id("guests")),
+    patch: v.object({
+      side: v.optional(SIDE),
+      isChild: v.optional(v.boolean()),
+      plusOneAllowed: v.optional(v.boolean()),
+      rsvpStatus: v.optional(RSVP_STATUS),
+      rsvpOffline: v.optional(v.boolean()),
+      invitationId: v.optional(v.string()),
+      address: v.optional(ADDRESS),
+      adminNotes: v.optional(v.string()),
+      adminNotesMode: v.optional(ADMIN_NOTES_MODE),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAdmin(ctx);
+    const now = Date.now();
+    const patch = args.patch;
+    let updated = 0;
+
+    for (const id of args.ids) {
+      const existing = await ctx.db.get(id);
+      if (!existing || existing.deletedAt) continue;
+
+      const before = pickAuditFields(existing);
+      const next: Partial<Doc<"guests">> = { updatedAt: now };
+
+      if (patch.side !== undefined) next.side = patch.side;
+      if (patch.isChild !== undefined) next.isChild = patch.isChild;
+      if (patch.plusOneAllowed !== undefined) {
+        next.plusOneAllowed = patch.plusOneAllowed;
+      }
+      if (patch.rsvpStatus !== undefined) {
+        next.rsvpStatus = patch.rsvpStatus;
+        // Stamp rsvpAt only on actual transitions to a non-pending status,
+        // mirroring the single-guest update path.
+        if (
+          patch.rsvpStatus !== existing.rsvpStatus &&
+          patch.rsvpStatus !== "pending"
+        ) {
+          next.rsvpAt = now;
+        }
+      }
+      if (patch.rsvpOffline !== undefined) {
+        next.rsvpOffline = patch.rsvpOffline;
+      }
+      if (patch.invitationId !== undefined) {
+        const trimmed = patch.invitationId.trim();
+        if (trimmed) next.invitationId = trimmed;
+      }
+      if (patch.address !== undefined) next.address = patch.address;
+      if (patch.adminNotes !== undefined) {
+        const incoming = patch.adminNotes.trim();
+        if (
+          (patch.adminNotesMode ?? "replace") === "append" &&
+          existing.adminNotes
+        ) {
+          next.adminNotes = `${existing.adminNotes}\n${incoming}`.trim() ||
+            undefined;
+        } else {
+          next.adminNotes = incoming || undefined;
+        }
+      }
+
+      await ctx.db.patch(id, next);
+
+      const merged: Doc<"guests"> = { ...existing, ...next };
+      const after = pickAuditFields(merged);
+      if (auditWorthyChanged(before, after)) {
+        await ctx.db.insert("rsvpAuditLog", {
+          guestId: id,
+          invitationId: next.invitationId ?? existing.invitationId,
+          changedAt: now,
+          changedBy: "admin",
+          changedByUserId: userId,
+          before,
+          after,
+        });
+      }
+      updated++;
+    }
+    return { updated };
+  },
+});
+
+export const bulkSoftDelete = mutation({
+  args: { ids: v.array(v.id("guests")) },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAdmin(ctx);
+    const now = Date.now();
+    let deleted = 0;
+    for (const id of args.ids) {
+      const existing = await ctx.db.get(id);
+      if (!existing || existing.deletedAt) continue;
+      await ctx.db.patch(id, { deletedAt: now, updatedAt: now });
+      await ctx.db.insert("rsvpAuditLog", {
+        guestId: id,
+        invitationId: existing.invitationId,
+        changedAt: now,
+        changedBy: "admin",
+        changedByUserId: userId,
+        before: { deletedAt: existing.deletedAt },
+        after: { deletedAt: now },
+      });
+      deleted++;
+    }
+    return { deleted };
   },
 });
 
