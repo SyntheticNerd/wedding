@@ -211,7 +211,7 @@ export function ContactForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="w-full h-12 text-sm tracking-[0.3em] uppercase mt-2"
+        className="w-full h-12 pl-[0.3em] text-sm tracking-[0.3em] uppercase mt-2 bg-blush text-cream hover:bg-blush/90 hover:text-cream"
       >
         {pending ? "Sending…" : "Send message"}
       </Button>
