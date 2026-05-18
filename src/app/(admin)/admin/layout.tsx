@@ -1,11 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
 import { COUPLE } from "@/lib/site-config";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { LogoMark } from "@/components/site/logo";
-import { MessagesNavLink } from "@/components/admin/messages-nav-link";
 
 // Admin pages are auth-gated and rely on a runtime Convex connection;
 // they must not be statically prerendered at build.
@@ -34,42 +33,7 @@ export default async function AdminLayout({
               admin
             </span>
           </Link>
-          <nav className="flex items-center gap-3 sm:gap-6 text-[13px] sm:text-sm">
-            <Link
-              href="/admin"
-              className="text-foreground hover:text-foreground/70 py-2 -my-2"
-            >
-              Guests
-            </Link>
-            <Link
-              href="/admin/invitations"
-              className="text-foreground hover:text-foreground/70 py-2 -my-2"
-            >
-              <span className="sm:hidden">QR</span>
-              <span className="hidden sm:inline">Invitations</span>
-            </Link>
-            <Link
-              href="/admin/import"
-              className="text-foreground hover:text-foreground/70 py-2 -my-2"
-            >
-              Import
-            </Link>
-            <MessagesNavLink />
-            <Link
-              href="/admin/vendors"
-              className="text-foreground hover:text-foreground/70 py-2 -my-2"
-            >
-              Vendors
-            </Link>
-            <Link
-              href="/admin/settings"
-              className="text-foreground hover:text-foreground/70 py-2 -my-2"
-            >
-              <span className="sm:hidden">Set</span>
-              <span className="hidden sm:inline">Settings</span>
-            </Link>
-            <UserButton />
-          </nav>
+          <AdminNav />
         </div>
       </header>
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 print:px-0 print:py-0">

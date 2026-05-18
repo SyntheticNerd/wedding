@@ -3,15 +3,37 @@
 import Link from "next/link";
 import { Authenticated, useQuery } from "convex/react";
 import { api } from "@/lib/convex";
+import { cn } from "@/lib/utils";
 
-export function MessagesNavLink() {
+/**
+ * Renders the Messages link with a live unread-count badge.
+ *
+ * Two variants:
+ * - Default (desktop nav inline): label "Messages" with subtle padding.
+ * - `variant="drawer"`: label "Messages", block row with bottom border to
+ *   match the mobile hamburger drawer's stacked layout.
+ *
+ * `onClick` is forwarded so the drawer can close on tap.
+ */
+export function MessagesNavLink({
+  variant = "inline",
+  onClick,
+}: {
+  variant?: "inline" | "drawer";
+  onClick?: () => void;
+} = {}) {
   return (
     <Link
       href="/admin/messages"
-      className="text-foreground hover:text-foreground/70 py-2 -my-2 inline-flex items-center gap-1.5"
+      onClick={onClick}
+      className={cn(
+        "text-foreground inline-flex items-center gap-1.5",
+        variant === "inline"
+          ? "hover:text-foreground/70 py-2 -my-2"
+          : "py-3 border-b border-border w-full",
+      )}
     >
-      <span className="sm:hidden">Msgs</span>
-      <span className="hidden sm:inline">Messages</span>
+      Messages
       {/* The badge query is admin-gated. The nav header sits outside
           AdminShell, so during the brief Clerk → Convex auth handshake
           the query would otherwise throw "Not authenticated". Defer
