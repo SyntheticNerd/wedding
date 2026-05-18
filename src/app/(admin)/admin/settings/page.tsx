@@ -34,6 +34,8 @@ export default function SettingsPage() {
     useState<Edited<string>>(null);
   const [venueCapacityEdit, setVenueCapacityEdit] =
     useState<Edited<string>>(null);
+  const [weddingBudgetEdit, setWeddingBudgetEdit] =
+    useState<Edited<string>>(null);
   const [notificationsEdit, setNotificationsEdit] =
     useState<Edited<boolean>>(null);
 
@@ -47,6 +49,11 @@ export default function SettingsPage() {
     venueCapacityEdit ??
     (settings?.venueCapacity != null
       ? String(settings.venueCapacity)
+      : "");
+  const weddingBudget =
+    weddingBudgetEdit ??
+    (settings?.weddingBudget != null
+      ? String(settings.weddingBudget)
       : "");
   const notificationsOn =
     notificationsEdit ??
@@ -71,6 +78,22 @@ export default function SettingsPage() {
           toast.error("Venue capacity must be a non-negative whole number");
           return;
         }
+
+        const budgetRaw = weddingBudget.trim();
+        const budgetParsed = budgetRaw
+          ? Number.parseInt(budgetRaw, 10)
+          : null;
+        const budgetNumber =
+          budgetParsed != null &&
+          Number.isFinite(budgetParsed) &&
+          budgetParsed >= 0
+            ? budgetParsed
+            : null;
+        if (budgetRaw && budgetNumber === null) {
+          toast.error("Wedding budget must be a non-negative whole number");
+          return;
+        }
+
         await Promise.all([
           setSetting({
             key: "coupleNames",
@@ -91,6 +114,13 @@ export default function SettingsPage() {
                 ? capacityNumber
                 : null,
           }),
+          setSetting({
+            key: "weddingBudget",
+            value:
+              budgetNumber != null && Number.isFinite(budgetNumber)
+                ? budgetNumber
+                : null,
+          }),
           setNotifications({ enabled: notificationsOn }),
         ]);
         toast.success("Settings saved");
@@ -98,6 +128,7 @@ export default function SettingsPage() {
         setWeddingDateEdit(null);
         setLockedAtEdit(null);
         setVenueCapacityEdit(null);
+        setWeddingBudgetEdit(null);
         setNotificationsEdit(null);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Save failed");
@@ -180,6 +211,26 @@ export default function SettingsPage() {
           <p className="text-xs text-muted-foreground">
             Used by the capacity bar on the guest list to flag when projected
             attendance approaches or exceeds this number.
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl">Wedding budget</h2>
+        <div className="space-y-1 max-w-xs">
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Total budget (USD)
+          </Label>
+          <Input
+            type="number"
+            min={0}
+            value={weddingBudget}
+            onChange={(e) => setWeddingBudgetEdit(e.target.value)}
+            placeholder="e.g. 45000"
+          />
+          <p className="text-xs text-muted-foreground">
+            Used by the budget bar on the vendors page. Leave blank to show
+            committed spend without a target.
           </p>
         </div>
       </section>
