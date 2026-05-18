@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   CATEGORIES,
   CATEGORY_LABELS,
   INCLUDES,
@@ -128,9 +135,15 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
           cons: cons.trim() || undefined,
           rating: parsedRating,
           depositAmount: parsedDeposit,
-          depositPaidAt: depositPaid ? Date.now() : undefined,
+          // Preserve the original paid-at timestamp on edit; only stamp a
+          // fresh `Date.now()` when transitioning from unpaid → paid.
+          depositPaidAt: depositPaid
+            ? (existing?.depositPaidAt ?? Date.now())
+            : undefined,
           finalDueAt: parsedFinalDue,
-          finalPaidAt: finalPaid ? Date.now() : undefined,
+          finalPaidAt: finalPaid
+            ? (existing?.finalPaidAt ?? Date.now())
+            : undefined,
         };
 
         if (existing) {
@@ -155,17 +168,21 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Category">
-          <select
+          <Select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            onValueChange={(v) => v != null && setCategory(v)}
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABELS[c]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {CATEGORY_LABELS[c]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         {category === "other" && (
           <Field label="Custom category label">
@@ -176,17 +193,21 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
           </Field>
         )}
         <Field label="Status">
-          <select
+          <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as Vendor["status"])}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            onValueChange={(v) => setStatus(v as Vendor["status"])}
           >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Location">
           <Input
@@ -207,17 +228,21 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
           />
         </Field>
         <Field label="Price unit">
-          <select
+          <Select
             value={priceUnit}
-            onChange={(e) => setPriceUnit(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            onValueChange={(v) => v != null && setPriceUnit(v)}
           >
-            {PRICE_UNITS.map((u) => (
-              <option key={u} value={u}>
-                {PRICE_UNIT_LABELS[u]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PRICE_UNITS.map((u) => (
+                <SelectItem key={u} value={u}>
+                  {PRICE_UNIT_LABELS[u]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Rating (1–5)">
           <Input

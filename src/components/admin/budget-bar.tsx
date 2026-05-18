@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/lib/convex";
+import { formatUSD } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const USD = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 /**
  * Mirrors CapacityBar: committed (filled) + considering (soft band) over
@@ -58,7 +53,7 @@ export function BudgetBar() {
           <span className="text-xs text-muted-foreground">
             Budget:{" "}
             <span className="text-foreground font-medium tabular-nums">
-              {USD.format(budget)}
+              {formatUSD(budget)}
             </span>
           </span>
         ) : (
@@ -105,7 +100,7 @@ export function BudgetBar() {
       </div>
 
       <p className="text-sm text-foreground tabular-nums">
-        <span className="font-medium">{USD.format(committed)}</span> committed
+        <span className="font-medium">{formatUSD(committed)}</span> committed
         {considering > 0 && (
           <>
             {" · "}
@@ -118,7 +113,7 @@ export function BudgetBar() {
                     : "text-muted-foreground"
               }
             >
-              up to {USD.format(projected)} if all considering are chosen
+              up to {formatUSD(projected)} if all considering are chosen
             </span>
           </>
         )}
@@ -126,7 +121,7 @@ export function BudgetBar() {
           <>
             {" · "}
             <span className="text-muted-foreground">
-              {USD.format(Math.max(0, budget - projected))} remaining
+              {formatUSD(Math.max(0, budget - projected))} remaining
             </span>
           </>
         )}
@@ -135,7 +130,7 @@ export function BudgetBar() {
       {overBudget && (
         <p className="text-xs text-[var(--status-no)]">
           Projected to exceed your budget by{" "}
-          {USD.format(projected - (budget as number))}. Consider trimming the
+          {formatUSD(projected - (budget as number))}. Consider trimming the
           shortlist.
         </p>
       )}

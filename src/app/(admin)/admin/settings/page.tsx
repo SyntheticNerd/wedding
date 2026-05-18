@@ -109,17 +109,11 @@ export default function SettingsPage() {
           }),
           setSetting({
             key: "venueCapacity",
-            value:
-              capacityNumber != null && Number.isFinite(capacityNumber)
-                ? capacityNumber
-                : null,
+            value: capacityNumber,
           }),
           setSetting({
             key: "weddingBudget",
-            value:
-              budgetNumber != null && Number.isFinite(budgetNumber)
-                ? budgetNumber
-                : null,
+            value: budgetNumber,
           }),
           setNotifications({ enabled: notificationsOn }),
         ]);

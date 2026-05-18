@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { BudgetBar } from "@/components/admin/budget-bar";
 import {
   VendorToolbar,
@@ -14,6 +14,12 @@ export default function VendorsPage() {
     category: "all",
     status: "all",
   });
+
+  // Defer the search arg so each keystroke doesn't re-fire the Convex
+  // query. React picks a stale value during fast typing and catches up once
+  // the user pauses. Category and status are leaf-state changes so they
+  // pass through directly.
+  const deferredSearch = useDeferredValue(filters.search);
 
   return (
     <div className="space-y-6">
@@ -29,7 +35,7 @@ export default function VendorsPage() {
       <VendorList
         category={filters.category}
         status={filters.status}
-        search={filters.search}
+        search={deferredSearch}
       />
     </div>
   );

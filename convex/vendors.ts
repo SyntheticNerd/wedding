@@ -32,26 +32,44 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const all = await ctx.db.query("vendors").collect();
-    const search = args.search?.trim().toLowerCase();
-    return all
+    const search = args.search?.trim();
+
+    // Prefer the most-selective index path available. search_name takes
+    // precedence (it's the only one with full-text matching); else
+    // by_category if a category is set; else by_status; else a full scan.
+    let rows: Doc<"vendors">[];
+    if (search) {
+      rows = await ctx.db
+        .query("vendors")
+        .withSearchIndex("search_name", (q) => {
+          let qb = q.search("name", search);
+          if (args.category) qb = qb.eq("category", args.category);
+          if (args.status) qb = qb.eq("status", args.status);
+          qb = qb.eq("deletedAt", undefined);
+          return qb;
+        })
+        .collect();
+    } else if (args.category) {
+      const cat = args.category;
+      const status = args.status;
+      rows = await ctx.db
+        .query("vendors")
+        .withIndex("by_category", (q) =>
+          status ? q.eq("category", cat).eq("status", status) : q.eq("category", cat),
+        )
+        .collect();
+    } else if (args.status) {
+      const status = args.status;
+      rows = await ctx.db
+        .query("vendors")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .collect();
+    } else {
+      rows = await ctx.db.query("vendors").collect();
+    }
+
+    return rows
       .filter((vRow) => vRow.deletedAt === undefined)
-      .filter((vRow) =>
-        args.category ? vRow.category === args.category : true,
-      )
-      .filter((vRow) => (args.status ? vRow.status === args.status : true))
-      .filter((vRow) => {
-        if (!search) return true;
-        const hay = [
-          vRow.name,
-          vRow.location ?? "",
-          vRow.contactName ?? "",
-          vRow.notes ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(search);
-      })
       .sort((a, b) => {
         const byCat = a.category.localeCompare(b.category);
         if (byCat !== 0) return byCat;

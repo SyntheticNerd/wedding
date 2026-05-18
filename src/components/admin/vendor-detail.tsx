@@ -7,20 +7,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/convex";
 import type { Id } from "@/lib/convex";
+import { formatUSD } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   categoryLabel,
   includeLabel,
   PRICE_UNIT_LABELS,
-  STATUS_LABELS,
 } from "@/lib/vendor-categories";
 import { VendorForm } from "./vendor-form";
-
-const USD = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { VendorStatusBadge } from "./vendor-status-badge";
 
 export function VendorDetail({ id }: { id: Id<"vendors"> }) {
   const vendor = useQuery(api.vendors.get, { id });
@@ -57,13 +53,11 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
     <div className="space-y-6 max-w-3xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-            <span className="bg-muted px-2 py-0.5 rounded-full">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-widest">
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
               {categoryLabel(vendor.category, vendor.customCategory)}
-            </span>
-            <span className="bg-muted px-2 py-0.5 rounded-full">
-              {STATUS_LABELS[vendor.status]}
-            </span>
+            </Badge>
+            <VendorStatusBadge status={vendor.status} />
           </div>
           <h1 className="font-heading text-3xl mt-2">{vendor.name}</h1>
           {vendor.location && (
@@ -88,7 +82,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
         </h2>
         <p className="text-2xl font-heading tabular-nums">
           {vendor.priceTotal != null
-            ? USD.format(vendor.priceTotal)
+            ? formatUSD(vendor.priceTotal)
             : "—"}
           {vendor.priceUnit && (
             <span className="ml-2 text-sm text-muted-foreground font-sans">
@@ -127,7 +121,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
               [
                 "Deposit",
                 vendor.depositAmount != null
-                  ? `${USD.format(vendor.depositAmount)}${
+                  ? `${formatUSD(vendor.depositAmount)}${
                       vendor.depositPaidAt != null ? " · paid" : ""
                     }`
                   : undefined,

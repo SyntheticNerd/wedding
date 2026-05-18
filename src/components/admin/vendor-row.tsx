@@ -2,26 +2,16 @@
 
 import Link from "next/link";
 import type { Doc } from "@/lib/convex";
+import { formatUSD } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   categoryLabel,
   includeLabel,
   PRICE_UNIT_LABELS,
-  type VendorStatus,
 } from "@/lib/vendor-categories";
-
-const USD = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
+import { VendorStatusBadge } from "./vendor-status-badge";
 
 type Vendor = Doc<"vendors">;
-
-const STATUS_CLASSES: Record<VendorStatus, string> = {
-  considering: "bg-[var(--status-pending)]/20 text-[var(--status-pending)]",
-  chosen: "bg-[var(--status-yes)]/20 text-[var(--status-yes)]",
-  passed: "bg-muted text-muted-foreground",
-};
 
 export function VendorRow({
   vendor,
@@ -36,9 +26,9 @@ export function VendorRow({
       href={`/admin/vendors/${vendor._id}`}
       className="grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors"
     >
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
+      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
         {categoryLabel(vendor.category, vendor.customCategory)}
-      </span>
+      </Badge>
 
       <div className="min-w-0">
         <div className="text-sm font-medium text-foreground truncate">
@@ -72,11 +62,7 @@ export function VendorRow({
         )}
       </div>
 
-      <span
-        className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full whitespace-nowrap ${STATUS_CLASSES[vendor.status]}`}
-      >
-        {vendor.status}
-      </span>
+      <VendorStatusBadge status={vendor.status} />
     </Link>
   );
 }
@@ -93,16 +79,16 @@ export function VendorBundledStub({
       href={`/admin/vendors/${sourceVendor._id}`}
       className="grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 opacity-60 hover:opacity-100 hover:bg-muted/40 transition-all"
     >
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
+      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
         {categoryLabel(category)}
-      </span>
+      </Badge>
       <div className="text-sm italic text-muted-foreground truncate">
         — covered by {sourceVendor.name} —
       </div>
       <div className="text-right text-sm text-muted-foreground">incl.</div>
-      <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full whitespace-nowrap bg-[var(--status-yes)]/20 text-[var(--status-yes)]">
+      <Badge className="bg-[var(--status-yes)] text-white hover:bg-[var(--status-yes)]/90 text-[10px] uppercase tracking-widest">
         bundled
-      </span>
+      </Badge>
     </Link>
   );
 }
@@ -117,14 +103,14 @@ function renderPrice(
   if (vendor.priceUnit === "per_head") {
     if (confirmedHeadcount === 0) {
       return {
-        main: USD.format(vendor.priceTotal),
+        main: formatUSD(vendor.priceTotal),
         sub: `est. — · ${unitLabel}`,
       };
     }
     return {
-      main: USD.format(vendor.priceTotal * confirmedHeadcount),
-      sub: `est. ${confirmedHeadcount} × ${USD.format(vendor.priceTotal)}`,
+      main: formatUSD(vendor.priceTotal * confirmedHeadcount),
+      sub: `est. ${confirmedHeadcount} × ${formatUSD(vendor.priceTotal)}`,
     };
   }
-  return { main: USD.format(vendor.priceTotal), sub: unitLabel };
+  return { main: formatUSD(vendor.priceTotal), sub: unitLabel };
 }

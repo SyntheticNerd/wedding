@@ -11,6 +11,13 @@ import {
 } from "@/lib/vendor-categories";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export type VendorFilters = {
@@ -34,39 +41,42 @@ export function VendorToolbar({
         placeholder="Search vendors…"
         className="max-w-xs"
       />
-      <select
+      <Select
         value={value.category}
-        onChange={(e) =>
-          onChange({ ...value, category: e.target.value as Category | "all" })
+        onValueChange={(v) =>
+          onChange({ ...value, category: v as Category | "all" })
         }
-        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-        aria-label="Filter by category"
       >
-        <option value="all">All categories</option>
-        {CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {CATEGORY_LABELS[c]}
-          </option>
-        ))}
-      </select>
-      <select
+        <SelectTrigger aria-label="Filter by category">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All categories</SelectItem>
+          {CATEGORIES.map((c) => (
+            <SelectItem key={c} value={c}>
+              {CATEGORY_LABELS[c]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
         value={value.status}
-        onChange={(e) =>
-          onChange({
-            ...value,
-            status: e.target.value as VendorStatus | "all",
-          })
+        onValueChange={(v) =>
+          onChange({ ...value, status: v as VendorStatus | "all" })
         }
-        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-        aria-label="Filter by status"
       >
-        <option value="all">All statuses</option>
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {STATUS_LABELS[s]}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Filter by status">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All statuses</SelectItem>
+          {STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <div className="ml-auto flex gap-2">
         <Link
           href="/admin/vendors/bulk"
