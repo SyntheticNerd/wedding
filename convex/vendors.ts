@@ -315,12 +315,14 @@ export const restore = mutation({
 });
 
 /**
- * Insert many vendors at once. Each row is validated by the schema; on any
- * row failure we record the error string and continue. Returns a per-row
- * summary so the caller can surface partial successes.
+ * Insert many vendors at once. Accepts `v.any()` rows so a single bad row
+ * doesn't abort the whole batch at arg-validation time. We validate each
+ * row manually inside the handler, record descriptive per-row errors, and
+ * insert the rest. Returns a per-row summary so the caller can surface
+ * partial successes.
  */
 export const bulkAdd = mutation({
-  args: { rows: v.array(v.object(vendorFields)) },
+  args: { rows: v.array(v.any()) },
   handler: async (ctx, args) => {
     const { userId } = await requireAdmin(ctx);
     const now = Date.now();
@@ -328,7 +330,12 @@ export const bulkAdd = mutation({
     const errors: Array<{ index: number; message: string }> = [];
 
     for (let i = 0; i < args.rows.length; i++) {
-      const r = args.rows[i];
+      const result = validateBulkVendorRow(args.rows[i]);
+      if (!result.ok) {
+        errors.push({ index: i, message: result.error });
+        continue;
+      }
+      const r = result.row;
       try {
         await ctx.db.insert("vendors", {
           name: r.name.trim(),
@@ -368,6 +375,130 @@ export const bulkAdd = mutation({
     return { inserted, errors };
   },
 });
+
+/* ----------------------------------------------------------------------
+   bulkAdd row validation
+   -------------------------------------------------------------------- */
+
+type ValidatedRow = {
+  name: string;
+  category: string;
+  customCategory?: string;
+  status?: "considering" | "chosen" | "passed";
+  priceTotal?: number;
+  priceUnit?: "flat" | "per_head" | "per_hour";
+  includes?: string[];
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  location?: string;
+  notes?: string;
+  links?: Array<{ label: string; url: string }>;
+  depositAmount?: number;
+  depositPaidAt?: number;
+  finalDueAt?: number;
+  finalPaidAt?: number;
+  rating?: number;
+  pros?: string;
+  cons?: string;
+};
+
+const STATUS_VALUES = ["considering", "chosen", "passed"] as const;
+const PRICE_UNIT_VALUES = ["flat", "per_head", "per_hour"] as const;
+const OPTIONAL_STRINGS = [
+  "customCategory",
+  "contactName",
+  "phone",
+  "email",
+  "website",
+  "location",
+  "notes",
+  "pros",
+  "cons",
+] as const;
+const OPTIONAL_NUMBERS = [
+  "priceTotal",
+  "depositAmount",
+  "depositPaidAt",
+  "finalDueAt",
+  "finalPaidAt",
+  "rating",
+] as const;
+
+function validateBulkVendorRow(
+  raw: unknown,
+): { ok: true; row: ValidatedRow } | { ok: false; error: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "must be a JSON object" };
+  }
+  const r = raw as Record<string, unknown>;
+
+  if (typeof r.name !== "string" || !r.name.trim()) {
+    return { ok: false, error: 'field "name" is required and must be a non-empty string' };
+  }
+  if (typeof r.category !== "string" || !r.category.trim()) {
+    return { ok: false, error: 'field "category" is required and must be a string' };
+  }
+  if (
+    r.status !== undefined &&
+    !STATUS_VALUES.includes(r.status as (typeof STATUS_VALUES)[number])
+  ) {
+    return {
+      ok: false,
+      error: `field "status" must be one of ${STATUS_VALUES.join(" | ")} (got ${JSON.stringify(r.status)})`,
+    };
+  }
+  if (
+    r.priceUnit !== undefined &&
+    !PRICE_UNIT_VALUES.includes(
+      r.priceUnit as (typeof PRICE_UNIT_VALUES)[number],
+    )
+  ) {
+    return {
+      ok: false,
+      error: `field "priceUnit" must be one of ${PRICE_UNIT_VALUES.join(" | ")} (got ${JSON.stringify(r.priceUnit)})`,
+    };
+  }
+  if (
+    r.includes !== undefined &&
+    (!Array.isArray(r.includes) ||
+      !r.includes.every((t) => typeof t === "string"))
+  ) {
+    return { ok: false, error: 'field "includes" must be an array of strings' };
+  }
+  for (const f of OPTIONAL_STRINGS) {
+    if (r[f] !== undefined && typeof r[f] !== "string") {
+      return { ok: false, error: `field "${f}" must be a string` };
+    }
+  }
+  for (const f of OPTIONAL_NUMBERS) {
+    if (r[f] !== undefined && typeof r[f] !== "number") {
+      return { ok: false, error: `field "${f}" must be a number` };
+    }
+  }
+  if (r.links !== undefined) {
+    if (!Array.isArray(r.links)) {
+      return { ok: false, error: 'field "links" must be an array' };
+    }
+    for (let i = 0; i < r.links.length; i++) {
+      const l = r.links[i];
+      if (
+        !l ||
+        typeof l !== "object" ||
+        typeof (l as { label?: unknown }).label !== "string" ||
+        typeof (l as { url?: unknown }).url !== "string"
+      ) {
+        return {
+          ok: false,
+          error: `links[${i}] must be { label: string, url: string }`,
+        };
+      }
+    }
+  }
+
+  return { ok: true, row: r as unknown as ValidatedRow };
+}
 
 export type Vendor = Doc<"vendors">;
 export type VendorId = Id<"vendors">;

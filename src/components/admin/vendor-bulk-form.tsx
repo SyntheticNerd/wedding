@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import { api } from "@/lib/convex";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  CATEGORIES,
+  CATEGORIES_WITH_INCLUDES,
+  INCLUDES,
+  STATUSES,
+  PRICE_UNITS,
+} from "@/lib/vendor-categories";
 
 const SAMPLE = `[
   {
@@ -20,11 +27,54 @@ const SAMPLE = `[
   }
 ]`;
 
+// Built from the same const arrays the schema uses, so the prompt and the
+// validator can't drift out of sync.
+const LLM_PROMPT = `You are helping plan a wedding. Output a JSON array of vendor objects to paste into a wedding-planning admin tool.
+
+TASK: Find {N} {category} vendors in {location} matching: {criteria}
+
+Output ONLY a JSON array. No markdown fence, no commentary.
+
+Each vendor object accepts these fields:
+- name (string, REQUIRED)
+- category (string, REQUIRED) — one of: ${CATEGORIES.join(", ")}
+- status (string, optional, defaults to "considering") — one of: ${STATUSES.join(", ")}
+- priceTotal (integer USD, optional)
+- priceUnit (string, optional) — one of: ${PRICE_UNITS.join(", ")}
+- includes (string[], optional, only meaningful for: ${Array.from(CATEGORIES_WITH_INCLUDES).join(", ")}) — any of: ${INCLUDES.join(", ")}
+- contactName (string, optional)
+- phone (string, optional)
+- email (string, optional)
+- website (string, optional)
+- location (string, optional) — e.g. "Carmel, CA"
+- notes (string, optional, markdown) — anything relevant: style, reviews, what's notable
+- rating (integer 1-5, optional)
+- pros (string, optional)
+- cons (string, optional)
+
+EXAMPLE:
+[
+  {
+    "name": "Sunset Manor",
+    "category": "venue",
+    "status": "considering",
+    "priceTotal": 20000,
+    "priceUnit": "flat",
+    "includes": ["catering", "bar", "linens"],
+    "location": "Carmel, CA",
+    "website": "https://example.com",
+    "notes": "Coastal venue, all-inclusive. Bundle covers catering + bar + linens."
+  }
+]
+
+Now produce the array.`;
+
 export function VendorBulkForm() {
   const router = useRouter();
   const bulkAdd = useMutation(api.vendors.bulkAdd);
   const [text, setText] = useState("");
   const [pending, startTransition] = useTransition();
+  const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<{
     inserted: number;
     errors: Array<{ index: number; message: string }>;
@@ -64,6 +114,16 @@ export function VendorBulkForm() {
     });
   }
 
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(LLM_PROMPT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy — your browser blocked clipboard access");
+    }
+  }
+
   return (
     <div className="space-y-4 max-w-3xl">
       <p className="text-sm text-muted-foreground">
@@ -71,6 +131,29 @@ export function VendorBulkForm() {
         fields as a single add. Validation runs per-row; partial successes
         are kept.
       </p>
+
+      <details className="rounded-lg border border-border bg-card overflow-hidden group">
+        <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium hover:bg-muted/40 transition-colors flex items-center gap-2">
+          <span className="text-[var(--accent)] group-open:rotate-90 transition-transform inline-block">
+            ▶
+          </span>
+          Need help generating JSON? Copy a prompt for ChatGPT or Claude
+        </summary>
+        <div className="border-t border-border p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Replace <code>{"{N}"}</code>, <code>{"{category}"}</code>,{" "}
+            <code>{"{location}"}</code>, and <code>{"{criteria}"}</code>{" "}
+            inline, paste into your chat tool, then paste its JSON output
+            below.
+          </p>
+          <pre className="bg-muted/40 rounded-md p-3 text-xs overflow-auto max-h-72 whitespace-pre-wrap font-mono">
+            {LLM_PROMPT}
+          </pre>
+          <Button onClick={copyPrompt} variant="outline" size="sm">
+            {copied ? "Copied ✓" : "Copy prompt"}
+          </Button>
+        </div>
+      </details>
 
       <Textarea
         rows={18}
