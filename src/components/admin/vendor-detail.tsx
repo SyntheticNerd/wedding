@@ -54,7 +54,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest">
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-widest bg-muted text-muted-foreground">
               {categoryLabel(vendor.category, vendor.customCategory)}
             </Badge>
             <VendorStatusBadge status={vendor.status} />

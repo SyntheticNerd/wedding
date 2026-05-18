@@ -26,7 +26,7 @@ export function VendorRow({
       href={`/admin/vendors/${vendor._id}`}
       className="grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors"
     >
-      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
+      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest bg-muted text-muted-foreground">
         {categoryLabel(vendor.category, vendor.customCategory)}
       </Badge>
 
@@ -79,7 +79,7 @@ export function VendorBundledStub({
       href={`/admin/vendors/${sourceVendor._id}`}
       className="grid grid-cols-[auto_1fr_auto_auto] gap-3 sm:gap-4 items-center px-4 py-3 border-b border-border last:border-b-0 opacity-60 hover:opacity-100 hover:bg-muted/40 transition-all"
     >
-      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest">
+      <Badge variant="secondary" className="text-[10px] uppercase tracking-widest bg-muted text-muted-foreground">
         {categoryLabel(category)}
       </Badge>
       <div className="text-sm italic text-muted-foreground truncate">
