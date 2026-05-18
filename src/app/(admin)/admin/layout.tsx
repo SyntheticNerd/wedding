@@ -56,6 +56,12 @@ export default async function AdminLayout({
             </Link>
             <MessagesNavLink />
             <Link
+              href="/admin/vendors"
+              className="text-foreground hover:text-foreground/70 py-2 -my-2"
+            >
+              Vendors
+            </Link>
+            <Link
               href="/admin/settings"
               className="text-foreground hover:text-foreground/70 py-2 -my-2"
             >
