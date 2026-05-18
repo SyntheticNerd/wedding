@@ -111,7 +111,19 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
               ["Name", vendor.contactName],
               ["Phone", vendor.phone],
               ["Email", vendor.email],
-              ["Website", vendor.website],
+              [
+                "Website",
+                vendor.website ? (
+                  <a
+                    href={vendor.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--accent)] underline underline-offset-2"
+                  >
+                    {vendor.website}
+                  </a>
+                ) : undefined,
+              ],
             ]}
           />
         </Card>
@@ -140,7 +152,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
 
       {vendor.notes && (
         <Card title="Notes">
-          <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
+          <pre className="whitespace-pre-wrap wrap-anywhere font-sans text-sm text-foreground">
             {vendor.notes}
           </pre>
         </Card>
@@ -150,14 +162,14 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {vendor.pros && (
             <Card title="Pros">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
+              <pre className="whitespace-pre-wrap wrap-anywhere font-sans text-sm">
                 {vendor.pros}
               </pre>
             </Card>
           )}
           {vendor.cons && (
             <Card title="Cons">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
+              <pre className="whitespace-pre-wrap wrap-anywhere font-sans text-sm">
                 {vendor.cons}
               </pre>
             </Card>
@@ -173,8 +185,8 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
                 <a
                   href={l.url}
                   target="_blank"
-                  rel="noreferrer"
-                  className="text-[var(--accent)] underline underline-offset-2"
+                  rel="noopener noreferrer"
+                  className="text-[var(--accent)] underline underline-offset-2 wrap-anywhere"
                 >
                   {l.label || l.url}
                 </a>
@@ -216,9 +228,13 @@ function Card({
 function DefList({
   entries,
 }: {
-  entries: Array<[string, string | undefined]>;
+  entries: Array<[string, React.ReactNode]>;
 }) {
-  const visible = entries.filter(([, val]) => val && val.trim());
+  const visible = entries.filter(([, val]) => {
+    if (val == null || val === false) return false;
+    if (typeof val === "string") return val.trim().length > 0;
+    return true;
+  });
   if (visible.length === 0) {
     return <p className="text-sm text-muted-foreground">—</p>;
   }
@@ -227,7 +243,7 @@ function DefList({
       {visible.map(([k, val]) => (
         <div key={k} className="contents">
           <dt className="text-muted-foreground">{k}</dt>
-          <dd className="text-foreground break-words">{val}</dd>
+          <dd className="text-foreground min-w-0 wrap-anywhere">{val}</dd>
         </div>
       ))}
     </dl>
