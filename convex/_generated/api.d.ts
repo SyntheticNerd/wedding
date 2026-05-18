@@ -17,6 +17,7 @@ import type * as notifications from "../notifications.js";
 import type * as notificationsData from "../notificationsData.js";
 import type * as rsvp from "../rsvp.js";
 import type * as settings from "../settings.js";
+import type * as vendors from "../vendors.js";
 
 import type {
   ApiFromModules,
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   notificationsData: typeof notificationsData;
   rsvp: typeof rsvp;
   settings: typeof settings;
+  vendors: typeof vendors;
 }>;
 
 /**
