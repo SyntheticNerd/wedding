@@ -7,9 +7,10 @@ import { formatUSD } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Mirrors CapacityBar: committed (filled) + considering (soft band) over
- * a budget denominator. If no budget is set, the denominator is the sum of
- * committed + considering so the bar always fills.
+ * Tracks committed (chosen) vendor spend against the wedding budget. Unlike
+ * CapacityBar, this intentionally excludes "considering" — you don't book
+ * every venue/photographer on your shortlist, so summing them inflates the
+ * projection. If no budget is set, the bar fills against committed alone.
  */
 export function BudgetBar() {
   const rollups = useQuery(api.vendors.rollups);
@@ -25,23 +26,17 @@ export function BudgetBar() {
       : null;
 
   const committed = rollups.committed;
-  const considering = rollups.consideringTotal;
-  const projected = committed + considering;
 
-  const denom = budget ?? Math.max(projected, 1);
+  const denom = budget ?? Math.max(committed, 1);
   const committedPct = Math.min(100, (committed / denom) * 100);
-  const consideringPct = Math.min(
-    100 - committedPct,
-    (considering / denom) * 100,
-  );
   const overflowPct =
-    budget != null && projected > budget
-      ? Math.min(15, ((projected - budget) / denom) * 100)
+    budget != null && committed > budget
+      ? Math.min(15, ((committed - budget) / denom) * 100)
       : 0;
 
-  const overBudget = budget != null && projected > budget;
+  const overBudget = budget != null && committed > budget;
   const nearBudget =
-    budget != null && !overBudget && projected >= budget * 0.9;
+    budget != null && !overBudget && committed >= budget * 0.9;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
@@ -68,20 +63,15 @@ export function BudgetBar() {
 
       <div className="relative h-3 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="absolute inset-y-0 left-0 bg-[var(--status-yes)] transition-all"
+          className={`absolute inset-y-0 left-0 transition-all ${
+            overBudget
+              ? "bg-[var(--status-no)]"
+              : nearBudget
+                ? "bg-[var(--status-offline)]"
+                : "bg-[var(--status-yes)]"
+          }`}
           style={{ width: `${committedPct}%` }}
           aria-label="Committed"
-        />
-        <div
-          className={`absolute inset-y-0 transition-all ${
-            overBudget
-              ? "bg-[var(--status-no)]/40"
-              : nearBudget
-                ? "bg-[var(--status-offline)]/50"
-                : "bg-[var(--status-yes)]/30"
-          }`}
-          style={{ left: `${committedPct}%`, width: `${consideringPct}%` }}
-          aria-label="Considering"
         />
         {budget != null && (
           <div
@@ -101,27 +91,11 @@ export function BudgetBar() {
 
       <p className="text-sm text-foreground tabular-nums">
         <span className="font-medium">{formatUSD(committed)}</span> committed
-        {considering > 0 && (
-          <>
-            {" · "}
-            <span
-              className={
-                overBudget
-                  ? "text-[var(--status-no)] font-medium"
-                  : nearBudget
-                    ? "text-[var(--status-offline)] font-medium"
-                    : "text-muted-foreground"
-              }
-            >
-              up to {formatUSD(projected)} if all considering are chosen
-            </span>
-          </>
-        )}
         {budget != null && !overBudget && (
           <>
             {" · "}
             <span className="text-muted-foreground">
-              {formatUSD(Math.max(0, budget - projected))} remaining
+              {formatUSD(Math.max(0, budget - committed))} remaining
             </span>
           </>
         )}
@@ -129,14 +103,13 @@ export function BudgetBar() {
 
       {overBudget && (
         <p className="text-xs text-[var(--status-no)]">
-          Projected to exceed your budget by{" "}
-          {formatUSD(projected - (budget as number))}. Consider trimming the
-          shortlist.
+          Committed spend is over budget by{" "}
+          {formatUSD(committed - (budget as number))}.
         </p>
       )}
       {nearBudget && (
         <p className="text-xs text-[var(--status-offline)]">
-          Within 10% of budget if every considering vendor is chosen.
+          Within 10% of budget on committed spend.
         </p>
       )}
     </div>
