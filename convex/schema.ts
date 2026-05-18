@@ -97,4 +97,59 @@ export default defineSchema({
   })
     .index("by_created", ["createdAt"])
     .index("by_unread", ["readAt", "createdAt"]),
+
+  vendors: defineTable({
+    name: v.string(),
+    category: v.string(),
+    customCategory: v.optional(v.string()),
+    status: v.union(
+      v.literal("considering"),
+      v.literal("chosen"),
+      v.literal("passed"),
+    ),
+
+    priceTotal: v.optional(v.number()),
+    priceUnit: v.optional(
+      v.union(
+        v.literal("flat"),
+        v.literal("per_head"),
+        v.literal("per_hour"),
+      ),
+    ),
+    includes: v.array(v.string()),
+
+    contactName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    website: v.optional(v.string()),
+    location: v.optional(v.string()),
+
+    notes: v.optional(v.string()),
+    links: v.array(
+      v.object({
+        label: v.string(),
+        url: v.string(),
+      }),
+    ),
+
+    depositAmount: v.optional(v.number()),
+    depositPaidAt: v.optional(v.number()),
+    finalDueAt: v.optional(v.number()),
+    finalPaidAt: v.optional(v.number()),
+
+    rating: v.optional(v.number()),
+    pros: v.optional(v.string()),
+    cons: v.optional(v.string()),
+
+    createdAt: v.number(),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_category", ["category", "status"])
+    .index("by_status", ["status"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["category", "status", "deletedAt"],
+    }),
 });
