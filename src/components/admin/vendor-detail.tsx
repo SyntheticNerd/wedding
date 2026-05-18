@@ -16,7 +16,7 @@ import {
   PRICE_UNIT_LABELS,
 } from "@/lib/vendor-categories";
 import { VendorForm } from "./vendor-form";
-import { VendorStatusBadge } from "./vendor-status-badge";
+import { VendorStatusPicker } from "./vendor-status-picker";
 
 export function VendorDetail({ id }: { id: Id<"vendors"> }) {
   const vendor = useQuery(api.vendors.get, { id });
@@ -57,7 +57,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
             <Badge variant="secondary" className="text-[10px] uppercase tracking-widest bg-muted text-muted-foreground">
               {categoryLabel(vendor.category, vendor.customCategory)}
             </Badge>
-            <VendorStatusBadge status={vendor.status} />
+            <VendorStatusPicker vendorId={vendor._id} status={vendor.status} />
           </div>
           <h1 className="font-heading text-3xl mt-2">{vendor.name}</h1>
           {vendor.location && (
