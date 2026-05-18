@@ -21,6 +21,7 @@ import {
 import {
   CATEGORIES,
   CATEGORY_LABELS,
+  categoryCanBundle,
   INCLUDES,
   INCLUDE_LABELS,
   PRICE_UNITS,
@@ -84,6 +85,13 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
     setIncludes((cur) =>
       cur.includes(tag) ? cur.filter((t) => t !== tag) : [...cur, tag],
     );
+  }
+
+  function changeCategory(next: string) {
+    setCategory(next);
+    // Clear includes when switching to a non-bundler category — keeps stored
+    // data consistent with what the form actually offers.
+    if (!categoryCanBundle(next)) setIncludes([]);
   }
 
   function save() {
@@ -170,7 +178,7 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
         <Field label="Category">
           <Select
             value={category}
-            onValueChange={(v) => v != null && setCategory(v)}
+            onValueChange={(v) => v != null && changeCategory(v)}
           >
             <SelectTrigger>
               <SelectValue />
@@ -255,31 +263,33 @@ export function VendorForm({ existing }: { existing?: Vendor }) {
         </Field>
       </section>
 
-      <section>
-        <Label className="text-xs uppercase tracking-widest text-muted-foreground">
-          What it includes
-        </Label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {INCLUDES.map((tag) => (
-            <label
-              key={tag}
-              className={`cursor-pointer rounded-full px-3 py-1 text-xs border transition-colors ${
-                includes.includes(tag)
-                  ? "bg-[var(--accent)]/15 border-[var(--accent)] text-foreground"
-                  : "bg-background border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={includes.includes(tag)}
-                onChange={() => toggleInclude(tag)}
-              />
-              {INCLUDE_LABELS[tag]}
-            </label>
-          ))}
-        </div>
-      </section>
+      {categoryCanBundle(category) && (
+        <section>
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            What it includes
+          </Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {INCLUDES.map((tag) => (
+              <label
+                key={tag}
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs border transition-colors ${
+                  includes.includes(tag)
+                    ? "bg-[var(--accent)]/15 border-[var(--accent)] text-foreground"
+                    : "bg-background border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={includes.includes(tag)}
+                  onChange={() => toggleInclude(tag)}
+                />
+                {INCLUDE_LABELS[tag]}
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Contact name">

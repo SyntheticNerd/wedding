@@ -116,6 +116,25 @@ export const INCLUDE_LABELS: Record<IncludeTag, string> = {
 };
 
 /**
+ * Categories where a vendor typically bundles other services. Only these
+ * show the "What it includes" picker on the form — picking includes on a
+ * photographer or florist makes no sense.
+ */
+export const CATEGORIES_WITH_INCLUDES = new Set<Category>([
+  "venue",
+  "catering",
+  "bar",
+  "rentals",
+  "planner",
+  "day_of_coordinator",
+  "tent",
+]);
+
+export function categoryCanBundle(value: string): boolean {
+  return CATEGORIES_WITH_INCLUDES.has(value as Category);
+}
+
+/**
  * Map an `includes` tag to a category whose section should render a
  * "covered by X" stub row when a chosen vendor's includes contains the tag.
  * Tags with no corresponding category (e.g. linens, lighting alone) return
