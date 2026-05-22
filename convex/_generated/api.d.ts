@@ -15,6 +15,7 @@ import type * as lib_normalize from "../lib/normalize.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as notificationsData from "../notificationsData.js";
+import type * as productFetch from "../productFetch.js";
 import type * as registries from "../registries.js";
 import type * as registryProducts from "../registryProducts.js";
 import type * as rsvp from "../rsvp.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   notifications: typeof notifications;
   notificationsData: typeof notificationsData;
+  productFetch: typeof productFetch;
   registries: typeof registries;
   registryProducts: typeof registryProducts;
   rsvp: typeof rsvp;
