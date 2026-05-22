@@ -30,12 +30,9 @@ export default function Home() {
           <p className="text-sm tracking-widest uppercase mt-3 text-muted-foreground">
             {WEDDING.location}
           </p>
-          <div className="mt-12 flex justify-center">
+          <div className="mt-12 flex flex-wrap justify-center gap-3">
             <Link
               href="/rsvp"
-              // Inline padding bypasses the size variant's sm:px-2.5
-              // override. The +0.3em on the left compensates for the
-              // trailing letter-spacing so the glyphs read as centered.
               style={{
                 paddingLeft: "calc(2.5rem + 0.3em)",
                 paddingRight: "2.5rem",
@@ -46,6 +43,19 @@ export default function Home() {
               )}
             >
               RSVP
+            </Link>
+            <Link
+              href="/registry"
+              style={{
+                paddingLeft: "calc(2.5rem + 0.3em)",
+                paddingRight: "2.5rem",
+              }}
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "h-12 text-sm tracking-[0.3em] uppercase",
+              )}
+            >
+              Registry
             </Link>
           </div>
         </div>
