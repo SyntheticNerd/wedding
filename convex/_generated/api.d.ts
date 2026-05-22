@@ -16,6 +16,7 @@ import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as notificationsData from "../notificationsData.js";
 import type * as registries from "../registries.js";
+import type * as registryProducts from "../registryProducts.js";
 import type * as rsvp from "../rsvp.js";
 import type * as settings from "../settings.js";
 import type * as vendors from "../vendors.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   notificationsData: typeof notificationsData;
   registries: typeof registries;
+  registryProducts: typeof registryProducts;
   rsvp: typeof rsvp;
   settings: typeof settings;
   vendors: typeof vendors;
