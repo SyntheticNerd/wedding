@@ -38,6 +38,16 @@ export default function SettingsPage() {
     useState<Edited<string>>(null);
   const [notificationsEdit, setNotificationsEdit] =
     useState<Edited<boolean>>(null);
+  const [fundEnabledEdit, setFundEnabledEdit] =
+    useState<Edited<boolean>>(null);
+  const [fundHeadlineEdit, setFundHeadlineEdit] =
+    useState<Edited<string>>(null);
+  const [fundBlurbEdit, setFundBlurbEdit] =
+    useState<Edited<string>>(null);
+  const [fundCtaUrlEdit, setFundCtaUrlEdit] =
+    useState<Edited<string>>(null);
+  const [fundCtaLabelEdit, setFundCtaLabelEdit] =
+    useState<Edited<string>>(null);
 
   const coupleNames =
     coupleNamesEdit ?? (settings?.coupleNames as string | null) ?? "";
@@ -59,6 +69,27 @@ export default function SettingsPage() {
     notificationsEdit ??
     me?.profile?.emailNotificationsEnabled ??
     true;
+
+  const fundEnabled =
+    fundEnabledEdit ??
+    (settings?.["honeymoonFund.enabled"] as boolean | null) ??
+    false;
+  const fundHeadline =
+    fundHeadlineEdit ??
+    (settings?.["honeymoonFund.headline"] as string | null) ??
+    "";
+  const fundBlurb =
+    fundBlurbEdit ??
+    (settings?.["honeymoonFund.blurb"] as string | null) ??
+    "";
+  const fundCtaUrl =
+    fundCtaUrlEdit ??
+    (settings?.["honeymoonFund.ctaUrl"] as string | null) ??
+    "";
+  const fundCtaLabel =
+    fundCtaLabelEdit ??
+    (settings?.["honeymoonFund.ctaLabel"] as string | null) ??
+    "Contribute";
 
   function save() {
     startTransition(async () => {
@@ -115,6 +146,26 @@ export default function SettingsPage() {
             key: "weddingBudget",
             value: budgetNumber,
           }),
+          setSetting({
+            key: "honeymoonFund.enabled",
+            value: fundEnabled,
+          }),
+          setSetting({
+            key: "honeymoonFund.headline",
+            value: fundHeadline.trim() || null,
+          }),
+          setSetting({
+            key: "honeymoonFund.blurb",
+            value: fundBlurb.trim() || null,
+          }),
+          setSetting({
+            key: "honeymoonFund.ctaUrl",
+            value: fundCtaUrl.trim() || null,
+          }),
+          setSetting({
+            key: "honeymoonFund.ctaLabel",
+            value: fundCtaLabel.trim() || "Contribute",
+          }),
           setNotifications({ enabled: notificationsOn }),
         ]);
         toast.success("Settings saved");
@@ -124,6 +175,11 @@ export default function SettingsPage() {
         setVenueCapacityEdit(null);
         setWeddingBudgetEdit(null);
         setNotificationsEdit(null);
+        setFundEnabledEdit(null);
+        setFundHeadlineEdit(null);
+        setFundBlurbEdit(null);
+        setFundCtaUrlEdit(null);
+        setFundCtaLabelEdit(null);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Save failed");
       }
@@ -240,6 +296,62 @@ export default function SettingsPage() {
           <Label htmlFor="notifications">
             Email me when a guest RSVPs
           </Label>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl">Honeymoon fund</h2>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="fund-enabled"
+            checked={fundEnabled}
+            onCheckedChange={(v) => setFundEnabledEdit(v === true)}
+          />
+          <Label htmlFor="fund-enabled">
+            Show the honeymoon-fund hero on the registry page
+          </Label>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Headline
+          </Label>
+          <Input
+            value={fundHeadline}
+            onChange={(e) => setFundHeadlineEdit(e.target.value)}
+            placeholder="Help us see Patagonia"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Blurb
+          </Label>
+          <Input
+            value={fundBlurb}
+            onChange={(e) => setFundBlurbEdit(e.target.value)}
+            placeholder="Any contribution means the world."
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+              CTA URL
+            </Label>
+            <Input
+              value={fundCtaUrl}
+              onChange={(e) => setFundCtaUrlEdit(e.target.value)}
+              placeholder="https://www.honeyfund.com/..."
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+              CTA label
+            </Label>
+            <Input
+              value={fundCtaLabel}
+              onChange={(e) => setFundCtaLabelEdit(e.target.value)}
+              placeholder="Contribute"
+            />
+          </div>
         </div>
       </section>
 
