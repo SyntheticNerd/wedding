@@ -12,8 +12,7 @@ import { type Doc, type Id } from "../../../convex/_generated/dataModel";
 
 export function RegistryList() {
   const registries = useQuery(api.registries.listAdmin);
-  // Stubbed until Task B2 wires the real query.
-  const productCounts: { registryId: string; count: number }[] | undefined = [];
+  const productCounts = useQuery(api.registryProducts.countsByRegistry);
   const reorder = useMutation(api.registries.reorder);
 
   const [editing, setEditing] = useState<Doc<"registries"> | null>(null);
