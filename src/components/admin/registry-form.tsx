@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/lib/convex";
@@ -44,14 +44,36 @@ export function RegistryFormDialog({
   initial?: RegistryFormValues;
   registryId?: Id<"registries">;
 }) {
-  const [values, setValues] = useState<RegistryFormValues>(initial ?? EMPTY);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Keying by registryId (or "new") forces the body to remount with
+          fresh useState whenever the dialog target changes — sidesteps the
+          "setState in useEffect" pattern flagged by react-hooks rules. */}
+      {open && (
+        <RegistryFormBody
+          key={registryId ?? "new"}
+          initial={initial ?? EMPTY}
+          registryId={registryId}
+          onDone={() => onOpenChange(false)}
+        />
+      )}
+    </Dialog>
+  );
+}
+
+function RegistryFormBody({
+  initial,
+  registryId,
+  onDone,
+}: {
+  initial: RegistryFormValues;
+  registryId?: Id<"registries">;
+  onDone: () => void;
+}) {
+  const [values, setValues] = useState<RegistryFormValues>(initial);
   const add = useMutation(api.registries.add);
   const update = useMutation(api.registries.update);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) setValues(initial ?? EMPTY);
-  }, [open, initial]);
 
   async function save() {
     if (!values.name.trim() || !values.url.trim()) {
@@ -73,7 +95,7 @@ export function RegistryFormDialog({
         await add(payload);
       }
       toast.success(registryId ? "Saved" : "Added");
-      onOpenChange(false);
+      onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -82,11 +104,10 @@ export function RegistryFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{registryId ? "Edit registry" : "Add registry"}</DialogTitle>
-        </DialogHeader>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{registryId ? "Edit registry" : "Add registry"}</DialogTitle>
+      </DialogHeader>
         <div className="space-y-4">
           <Field label="Name *">
             <Input
@@ -135,16 +156,15 @@ export function RegistryFormDialog({
             <Label htmlFor="reg-hidden">Hide from the public page</Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <Button variant="secondary" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
