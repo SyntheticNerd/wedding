@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { type Doc, type Id } from "./_generated/dataModel";
 import { requireAdmin } from "./lib/auth";
 
@@ -245,6 +246,114 @@ export const applyOgSnapshot = mutation({
       ogFetchedAt: Date.now(),
       updatedAt: Date.now(),
     });
+  },
+});
+
+/* ----------------------------------------------------------------------
+   Public queries
+   -------------------------------------------------------------------- */
+
+const PRICE_BUCKET = v.union(
+  v.literal("under_50"),
+  v.literal("50_100"),
+  v.literal("100_250"),
+  v.literal("250_plus"),
+);
+
+const SORT = v.union(
+  v.literal("featured"),
+  v.literal("price_asc"),
+  v.literal("price_desc"),
+  v.literal("recent"),
+);
+
+const PRICE_RANGES: Record<
+  "under_50" | "50_100" | "100_250" | "250_plus",
+  { min: number; max: number }
+> = {
+  under_50: { min: 0, max: 5000 - 1 },
+  "50_100": { min: 5000, max: 10000 - 1 },
+  "100_250": { min: 10000, max: 25000 - 1 },
+  "250_plus": { min: 25000, max: Number.MAX_SAFE_INTEGER },
+};
+
+export const listPublic = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    registryIds: v.optional(v.array(v.id("registries"))),
+    priceBucket: v.optional(PRICE_BUCKET),
+    hideClaimed: v.optional(v.boolean()),
+    sort: v.optional(SORT),
+  },
+  handler: async (ctx, args) => {
+    const sort = args.sort ?? "featured";
+    const order = sort === "price_desc" || sort === "recent" ? "desc" : "asc";
+    const indexName =
+      sort === "featured"
+        ? "by_display_order"
+        : sort === "recent"
+          ? "by_creation_time"
+          : "by_price";
+
+    let q;
+    if (indexName === "by_creation_time") {
+      q = ctx.db.query("registryProducts").order(order);
+    } else if (indexName === "by_price") {
+      q = ctx.db
+        .query("registryProducts")
+        .withIndex("by_price", (b) =>
+          b.eq("deletedAt", undefined).eq("hidden", false),
+        )
+        .order(order);
+    } else {
+      q = ctx.db
+        .query("registryProducts")
+        .withIndex("by_display_order", (b) =>
+          b.eq("deletedAt", undefined).eq("hidden", false),
+        )
+        .order("asc");
+    }
+
+    const result = await q.paginate(args.paginationOpts);
+
+    const registryIdSet = args.registryIds
+      ? new Set(args.registryIds)
+      : null;
+    const range = args.priceBucket ? PRICE_RANGES[args.priceBucket] : null;
+
+    const filtered = result.page.filter((p) => {
+      if (p.deletedAt !== undefined) return false;
+      if (p.hidden) return false;
+      if (registryIdSet && !registryIdSet.has(p.registryId)) return false;
+      if (range && (p.priceCents < range.min || p.priceCents > range.max)) {
+        return false;
+      }
+      if (args.hideClaimed && p.claimedAt !== undefined) return false;
+      return true;
+    });
+
+    // Surface claimed items last when shown.
+    const claimedLast = [...filtered].sort((a, b) => {
+      const aClaimed = a.claimedAt !== undefined ? 1 : 0;
+      const bClaimed = b.claimedAt !== undefined ? 1 : 0;
+      return aClaimed - bClaimed;
+    });
+
+    return {
+      page: claimedLast,
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
+  },
+});
+
+export const totalsPublic = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = (await ctx.db.query("registryProducts").collect()).filter(
+      (p) => p.deletedAt === undefined && !p.hidden,
+    );
+    return { total: rows.length };
   },
 });
 
