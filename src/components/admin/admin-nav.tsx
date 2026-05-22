@@ -38,6 +38,9 @@ export function AdminNav() {
         <Link href="/admin/registries" className={DESKTOP_LINK}>
           Registry
         </Link>
+        <Link href="/admin/products" className={DESKTOP_LINK}>
+          Picks
+        </Link>
         <Link href="/admin/settings" className={DESKTOP_LINK}>
           Settings
         </Link>
@@ -97,6 +100,13 @@ export function AdminNav() {
                 className="py-3 border-b border-border text-foreground"
               >
                 Registry
+              </Link>
+              <Link
+                href="/admin/products"
+                onClick={() => setOpen(false)}
+                className="py-3 border-b border-border text-foreground"
+              >
+                Picks
               </Link>
               <Link
                 href="/admin/settings"
