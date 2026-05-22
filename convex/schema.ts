@@ -152,4 +152,45 @@ export default defineSchema({
       searchField: "name",
       filterFields: ["category", "status", "deletedAt"],
     }),
+
+  registries: defineTable({
+    name: v.string(),
+    url: v.string(),
+    logoUrl: v.optional(v.string()),
+    blurb: v.optional(v.string()),
+    displayOrder: v.number(),
+    hidden: v.boolean(),
+    createdAt: v.number(),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_display_order", ["deletedAt", "hidden", "displayOrder"]),
+
+  registryProducts: defineTable({
+    registryId: v.id("registries"),
+    name: v.string(),
+    priceCents: v.number(),
+    imageUrl: v.string(),
+    productUrl: v.string(),
+    displayOrder: v.number(),
+    hidden: v.boolean(),
+    // Claim
+    claimedAt: v.optional(v.number()),
+    claimedBy: v.optional(v.string()),
+    // OG fetch trail
+    ogFetchedAt: v.optional(v.number()),
+    ogTitle: v.optional(v.string()),
+    ogImageUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_registry", ["registryId", "deletedAt"])
+    .index("by_display_order", ["deletedAt", "hidden", "displayOrder"])
+    .index("by_price", ["deletedAt", "hidden", "priceCents"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["registryId", "hidden", "deletedAt"],
+    }),
 });
