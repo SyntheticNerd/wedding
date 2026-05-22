@@ -59,6 +59,11 @@ const PUBLIC_KEYS = new Set([
   "coupleNames",
   "venueName",
   "venueLocation",
+  "honeymoonFund.headline",
+  "honeymoonFund.blurb",
+  "honeymoonFund.ctaUrl",
+  "honeymoonFund.ctaLabel",
+  "honeymoonFund.enabled",
 ]);
 
 export const publicSettings = query({
