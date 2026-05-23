@@ -3,6 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { COUPLE, WEDDING } from "@/lib/site-config";
 import { ContactForm } from "@/components/public/contact-form";
+import { TravelSection } from "@/components/public/travel-section";
 
 // Landing page mounts the Convex-backed contact form, which needs the
 // ConvexProvider at runtime. Skip the static prerender pass — same
@@ -60,6 +61,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <TravelSection />
 
       <section className="px-6 pb-16 sm:pb-24">
         <div className="mx-auto max-w-xl">

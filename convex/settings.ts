@@ -64,6 +64,9 @@ const PUBLIC_KEYS = new Set([
   "honeymoonFund.ctaUrl",
   "honeymoonFund.ctaLabel",
   "honeymoonFund.enabled",
+  "travel.hotels",
+  "travel.gettingHere",
+  "travel.practical",
 ]);
 
 export const publicSettings = query({
