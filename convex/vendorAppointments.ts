@@ -121,5 +121,42 @@ export const softDelete = mutation({
   },
 });
 
+/* ----------------------------------------------------------------------
+   Cross-vendor query for the admin landing page
+   -------------------------------------------------------------------- */
+
+/**
+ * Next N scheduled appointments across all vendors. Joins vendor names so
+ * the caller doesn't need a second hop. Used by /admin landing.
+ */
+export const listUpcomingAll = query({
+  args: { limit: v.number() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const now = Date.now();
+    const rows = await ctx.db
+      .query("vendorAppointments")
+      .withIndex("by_start_status", (q) =>
+        q
+          .eq("deletedAt", undefined)
+          .eq("status", "scheduled")
+          .gte("startAt", now),
+      )
+      .order("asc")
+      .take(args.limit);
+
+    const vendorIds = Array.from(new Set(rows.map((r) => r.vendorId)));
+    const vendorMap = new Map<string, string>();
+    for (const vid of vendorIds) {
+      const v = await ctx.db.get(vid);
+      if (v) vendorMap.set(vid, v.name);
+    }
+    return rows.map((r) => ({
+      ...r,
+      vendorName: vendorMap.get(r.vendorId) ?? "(unknown vendor)",
+    }));
+  },
+});
+
 export type Appointment = Doc<"vendorAppointments">;
 export type AppointmentId = Id<"vendorAppointments">;
