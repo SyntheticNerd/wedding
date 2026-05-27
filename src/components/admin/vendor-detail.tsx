@@ -17,6 +17,7 @@ import {
 } from "@/lib/vendor-categories";
 import { VendorForm } from "./vendor-form";
 import { VendorStatusPicker } from "./vendor-status-picker";
+import { AppointmentsSection } from "./appointments-section";
 
 export function VendorDetail({ id }: { id: Id<"vendors"> }) {
   const vendor = useQuery(api.vendors.get, { id });
@@ -204,6 +205,8 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
           ← Back to vendors
         </Link>
       </p>
+
+      <AppointmentsSection vendorId={vendor._id} vendorName={vendor.name} />
     </div>
   );
 }
