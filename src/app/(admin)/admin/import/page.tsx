@@ -103,7 +103,7 @@ export default function ImportPage() {
       try {
         const result = await bulkImport({ rows: parsed });
         toast.success(`Imported ${result.inserted} guests`);
-        router.push("/admin");
+        router.push("/admin/guests");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Import failed");
       }
@@ -114,7 +114,7 @@ export default function ImportPage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <Link
-          href="/admin"
+          href="/admin/guests"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to guest list

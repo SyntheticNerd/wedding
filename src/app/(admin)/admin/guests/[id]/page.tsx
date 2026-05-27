@@ -30,7 +30,7 @@ export default function GuestDetailPage({
   if (guest === null) {
     return (
       <div className="space-y-4">
-        <Link href="/admin" className="text-sm text-muted-foreground">
+        <Link href="/admin/guests" className="text-sm text-muted-foreground">
           ← Back
         </Link>
         <p>Guest not found.</p>
@@ -42,7 +42,7 @@ export default function GuestDetailPage({
     <div className="space-y-6 max-w-3xl">
       <div>
         <Link
-          href="/admin"
+          href="/admin/guests"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to guest list
