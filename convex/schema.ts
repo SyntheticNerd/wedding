@@ -209,5 +209,7 @@ export default defineSchema({
     createdBy: v.string(),
     updatedAt: v.number(),
     deletedAt: v.optional(v.number()),
-  }).index("by_vendor", ["vendorId", "deletedAt", "startAt"]),
+  })
+    .index("by_vendor", ["vendorId", "deletedAt", "startAt"])
+    .index("by_start_status", ["deletedAt", "status", "startAt"]),
 });
