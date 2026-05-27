@@ -190,7 +190,7 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <Link
-          href="/admin"
+          href="/admin/guests"
           className="text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to guest list

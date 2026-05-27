@@ -22,7 +22,7 @@ export function AdminNav() {
     <>
       {/* Desktop (md+): inline nav, unchanged from previous header */}
       <nav className="hidden md:flex items-center gap-6 text-sm">
-        <Link href="/admin" className={DESKTOP_LINK}>
+        <Link href="/admin/guests" className={DESKTOP_LINK}>
           Guests
         </Link>
         <Link href="/admin/invitations" className={DESKTOP_LINK}>
@@ -66,7 +66,7 @@ export function AdminNav() {
             </DrawerTitle>
             <nav className="flex flex-col text-base">
               <Link
-                href="/admin"
+                href="/admin/guests"
                 onClick={() => setOpen(false)}
                 className="py-3 border-b border-border text-foreground"
               >
