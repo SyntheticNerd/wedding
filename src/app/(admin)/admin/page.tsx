@@ -1,18 +1,19 @@
-import Link from "next/link";
+import { CountdownHero } from "@/components/admin/landing/countdown-hero";
+import { QuickActions } from "@/components/admin/landing/quick-actions";
+import { GuestsCard } from "@/components/admin/landing/guests-card";
+import { MoneyCard } from "@/components/admin/landing/money-card";
+import { UpcomingAppointmentsCard } from "@/components/admin/landing/upcoming-appointments-card";
 
 export default function AdminLandingPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl">Welcome</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Admin landing coming next. In the meantime, jump straight to the{" "}
-          <Link href="/admin/guests" className="underline">
-            guest list
-          </Link>
-          .
-        </p>
+    <div className="space-y-6 sm:space-y-8">
+      <CountdownHero />
+      <QuickActions />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+        <GuestsCard />
+        <MoneyCard />
       </div>
+      <UpcomingAppointmentsCard />
     </div>
   );
 }
