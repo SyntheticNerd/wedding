@@ -20,6 +20,7 @@ import type * as registries from "../registries.js";
 import type * as registryProducts from "../registryProducts.js";
 import type * as rsvp from "../rsvp.js";
 import type * as settings from "../settings.js";
+import type * as vendorAppointments from "../vendorAppointments.js";
 import type * as vendors from "../vendors.js";
 
 import type {
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   registryProducts: typeof registryProducts;
   rsvp: typeof rsvp;
   settings: typeof settings;
+  vendorAppointments: typeof vendorAppointments;
   vendors: typeof vendors;
 }>;
 
