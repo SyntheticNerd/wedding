@@ -68,7 +68,7 @@ export function AppointmentFormDialog({
           dialog opening — sidesteps the react-hooks/set-state-in-effect
           rule that flagged the registry form in phase 3. */}
       {open && (
-        <Body
+        <AppointmentFormBody
           key={appointment?._id ?? "new"}
           vendorId={vendorId}
           appointment={appointment}
@@ -79,7 +79,7 @@ export function AppointmentFormDialog({
   );
 }
 
-function Body({
+export function AppointmentFormBody({
   vendorId,
   appointment,
   onDone,

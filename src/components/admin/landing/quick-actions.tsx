@@ -3,15 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { UserPlus, CalendarPlus, Store, Gift } from "lucide-react";
-
-// Wired in T8 — temporary stub so this task ships independently.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function GlobalAppointmentDialog(_props: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-}) {
-  return null;
-}
+import { GlobalAppointmentDialog } from "../global-appointment-dialog";
 
 export function QuickActions() {
   const [appointmentOpen, setAppointmentOpen] = useState(false);
