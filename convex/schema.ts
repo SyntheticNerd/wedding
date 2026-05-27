@@ -193,4 +193,21 @@ export default defineSchema({
       searchField: "name",
       filterFields: ["registryId", "hidden", "deletedAt"],
     }),
+
+  vendorAppointments: defineTable({
+    vendorId: v.id("vendors"),
+    startAt: v.number(),
+    endAt: v.number(),
+    location: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_vendor", ["vendorId", "deletedAt", "startAt"]),
 });
