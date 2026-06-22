@@ -53,6 +53,7 @@
   --color-blush: var(--blush);
   --color-sage: var(--sage);
   --color-charcoal: var(--charcoal);
+  --color-gold: var(--gold);
   --color-status-yes: var(--status-yes);
   --color-status-no: var(--status-no);
   --color-status-pending: var(--status-pending);
@@ -68,11 +69,13 @@
 }
 
 :root {
-  /* Brand palette */
-  --cream: oklch(0.965 0.008 80);          /* #FAF6F1 */
-  --blush: oklch(0.55 0.09 28);            /* deep dusty rose — readable against cream; soften with /40-/60 opacity for accents */
-  --sage: oklch(0.71 0.035 145);           /* #9CAE9C */
-  --charcoal: oklch(0.235 0.008 80);       /* #2E2A26 */
+  /* Brand palette — Tuscan villa: ivory / blush / olive / chocolate / warm gold.
+     Token names kept stable; values updated to the 2027 wedding palette (2026-06-22). */
+  --cream: #F4EDE0;        /* ivory — page background, light surfaces */
+  --blush: #D2A99E;        /* soft dusty blush — accents, secondary buttons */
+  --sage: #6E7449;         /* olive green — primary accent, links, focus rings */
+  --charcoal: #3E2A23;     /* chocolate brown — text, headings, primary buttons */
+  --gold: #BFA05A;         /* warm gold — fine details, dividers (use sparingly) */
 
   /* RSVP status accents */
   --status-yes: oklch(0.71 0.07 145);      /* sage-leaning green */
@@ -98,7 +101,7 @@
   --destructive: oklch(0.577 0.16 25);
   --border: oklch(0.88 0.012 80);
   --input: oklch(0.92 0.008 80);
-  --ring: oklch(0.55 0.04 145);
+  --ring: var(--sage);
 
   --chart-1: var(--sage);
   --chart-2: var(--blush);

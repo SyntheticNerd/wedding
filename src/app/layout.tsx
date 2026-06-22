@@ -79,24 +79,39 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Render Clerk when keys are present, OR always in production (so a missing
+  // key in prod fails loud rather than silently disabling auth). In preview/dev
+  // without keys, skip Clerk so public pages still render for review.
+  const useClerkProvider =
+    Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ||
+    process.env.VERCEL_ENV === "production";
+
+  const body = (
+    <ConvexClerkProvider>
+      {children}
+      <Toaster richColors />
+    </ConvexClerkProvider>
+  );
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${cormorant.variable} ${ephesis.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ClerkProvider
-          afterSignOutUrl="/"
-          signInUrl="/sign-in"
-          signUpUrl="/sign-in"
-          signInForceRedirectUrl="/admin"
-          signUpForceRedirectUrl="/admin"
-        >
-          <ConvexClerkProvider>
-            {children}
-            <Toaster richColors />
-          </ConvexClerkProvider>
-        </ClerkProvider>
+        {useClerkProvider ? (
+          <ClerkProvider
+            afterSignOutUrl="/"
+            signInUrl="/sign-in"
+            signUpUrl="/sign-in"
+            signInForceRedirectUrl="/admin"
+            signUpForceRedirectUrl="/admin"
+          >
+            {body}
+          </ClerkProvider>
+        ) : (
+          body
+        )}
       </body>
     </html>
   );

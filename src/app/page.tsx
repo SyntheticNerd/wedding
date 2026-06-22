@@ -4,13 +4,28 @@ import { cn } from "@/lib/utils";
 import { COUPLE, WEDDING } from "@/lib/site-config";
 import { ContactForm } from "@/components/public/contact-form";
 import { TravelSection } from "@/components/public/travel-section";
+import { Countdown } from "@/components/public/countdown";
 
 // Landing page mounts the Convex-backed contact form, which needs the
 // ConvexProvider at runtime. Skip the static prerender pass — same
 // reason /rsvp and /admin opt out.
 export const dynamic = "force-dynamic";
 
+function formatWeddingDate(dateISO: string): string {
+  // Parse as local date parts to avoid a UTC off-by-one on the displayed day.
+  const [year, month, day] = dateISO.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function Home() {
+  const displayDate = WEDDING.dateISO
+    ? formatWeddingDate(WEDDING.dateISO)
+    : "More details coming soon";
+
   return (
     <div className="flex-1 bg-cream text-charcoal">
       <section className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
@@ -25,12 +40,13 @@ export default function Home() {
             </span>
             {COUPLE.bride}
           </h1>
-          <p className="font-heading text-2xl text-muted-foreground mt-6 italic">
-            {WEDDING.dateISO ?? "More details coming soon"}
+          <p className="font-heading text-2xl sm:text-3xl text-charcoal mt-6 italic">
+            {displayDate}
           </p>
-          <p className="text-sm tracking-widest uppercase mt-3 text-muted-foreground">
-            {WEDDING.location}
+          <p className="text-sm tracking-[0.2em] uppercase mt-3 text-muted-foreground">
+            {WEDDING.venue} &middot; {WEDDING.location}
           </p>
+          {WEDDING.dateISO ? <Countdown dateISO={WEDDING.dateISO} /> : null}
           <div className="mt-12 flex flex-wrap justify-center gap-3">
             <Link
               href="/rsvp"
