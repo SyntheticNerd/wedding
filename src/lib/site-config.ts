@@ -14,11 +14,11 @@ export const COUPLE = {
 
 export const WEDDING = {
   /** Set to a real ISO date once locked. Used for countdown + lockedAt default. */
-  dateISO: null as string | null,
+  dateISO: "2027-04-09" as string | null,
   /** Used as the 'lockedAt' default — RSVPs disabled after this. Set in admin settings. */
   rsvpCutoffISO: null as string | null,
   /** Display venue name on hero and footer. */
-  venue: "TBD",
+  venue: "Wolf Lakes" as string,
   /** Short city/region descriptor. */
-  location: "TBD",
+  location: "Clovis, CA" as string,
 } as const;
