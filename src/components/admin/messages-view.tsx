@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api, type Doc, type Id } from "@/lib/convex";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export function MessagesView() {
@@ -109,6 +110,7 @@ function MessageDetail({
   const markReplied = useMutation(api.messages.markReplied);
   const softDelete = useMutation(api.messages.softDelete);
   const [pending, startTransition] = useTransition();
+  const { confirm, confirmDialog } = useConfirm();
 
   const id = message._id;
 
@@ -146,8 +148,13 @@ function MessageDetail({
     });
   }
 
-  function onDelete() {
-    if (!confirm(`Delete the message from ${message.name}?`)) return;
+  async function onDelete() {
+    const ok = await confirm({
+      title: `Delete the message from ${message.name}?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       try {
         await softDelete({ id });
@@ -161,6 +168,7 @@ function MessageDetail({
 
   return (
     <article className="space-y-4">
+      {confirmDialog}
       <header className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
           {formatFullDate(message.createdAt)}

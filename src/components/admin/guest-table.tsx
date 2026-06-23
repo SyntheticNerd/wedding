@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { RsvpStatusBadge } from "./rsvp-status-badge";
 import { BulkEditDialog } from "./bulk-edit-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Plus, Download, X } from "lucide-react";
 import Papa from "papaparse";
 
@@ -48,6 +49,7 @@ export function GuestTable() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const bulkSoftDelete = useMutation(api.guests.bulkSoftDelete);
+  const { confirm, confirmDialog } = useConfirm();
 
   const guests = useQuery(api.guests.list, {
     side: side === "all" ? undefined : side,
@@ -97,15 +99,16 @@ export function GuestTable() {
     setSelected(new Set());
   }
 
-  function onBulkDelete() {
+  async function onBulkDelete() {
     if (selectionCount === 0) return;
-    if (
-      !confirm(
-        `Delete ${selectionCount} guest${selectionCount === 1 ? "" : "s"}? This is reversible — they'll show up in deleted-guests views.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete ${selectionCount} guest${selectionCount === 1 ? "" : "s"}?`,
+      description:
+        "This is reversible — they'll show up in deleted-guests views.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       try {
         const result = await bulkSoftDelete({ ids: selectedVisible });
@@ -435,6 +438,7 @@ export function GuestTable() {
           clearSelection();
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

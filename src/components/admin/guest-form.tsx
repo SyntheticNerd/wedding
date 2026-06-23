@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AuditLog } from "./audit-log";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Mode = "create" | "edit";
 
@@ -100,6 +101,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
   const create = useMutation(api.guests.create);
   const update = useMutation(api.guests.update);
   const softDelete = useMutation(api.guests.softDelete);
+  const { confirm, confirmDialog } = useConfirm();
 
   function handleChange<K extends keyof FormState>(
     key: K,
@@ -228,9 +230,15 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
     runSave(false);
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!initial) return;
-    if (!confirm(`Delete ${initial.firstName} ${initial.lastName}?`)) return;
+    const ok = await confirm({
+      title: `Delete ${initial.firstName} ${initial.lastName}?`,
+      description: "This is reversible — they'll show up in deleted-guests views.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       try {
         await softDelete({ id: initial._id });
@@ -548,6 +556,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
           </Button>
         )}
       </div>
+      {confirmDialog}
     </form>
   );
 }
