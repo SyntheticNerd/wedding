@@ -48,6 +48,17 @@ Project memory lives at `/home/andrew/.claude/projects/-home-andrew-code-wedding
 - Main branch: `main`. Work in branches when the change is non-trivial; commit-on-main is fine for spec/doc-only edits.
 - The Stop hook (`.claude/hooks/stop-check.sh`) warns about uncommitted changes at session end.
 
+### Never strand knowledge on a branch (orphaned-work rule)
+Durable knowledge — planning docs, research, vendor lists, handoffs (anything under
+`docs/` or any `.md`/`.jsonl` worth keeping) — **must land on `main`**, not just on a
+feature branch. A branch that is never merged can be deleted and its docs lost forever
+(this happened once with the Wolf Lakes preferred-vendor list).
+- **Backstop:** `.claude/hooks/check-orphaned-branches.sh` runs on **SessionStart and Stop**
+  and lists any docs/data that exist on a remote branch but are absent from `main`. If it
+  fires, rescue those files (merge the branch's PR, or copy them onto `main`) before moving on.
+- **Before ending a session:** make sure every planning doc you wrote is on `main` (open and
+  merge its PR), and that the orphaned-work check is clean.
+
 ## 6. Hosting & secrets
 
 - Use `vercel env` for environment management. `.env*` files are gitignored.

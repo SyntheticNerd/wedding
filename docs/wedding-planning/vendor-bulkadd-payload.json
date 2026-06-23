@@ -1,0 +1,72 @@
+[
+  {
+    "name": "AMS Entertainment",
+    "category": "dj_music",
+    "status": "considering",
+    "contactName": "Todd Henry",
+    "phone": "559-896-8280",
+    "notes": "DJ (required from Wolf Lakes list). Andrew's lead."
+  },
+  {
+    "name": "Maty's Linens & Decor",
+    "category": "rentals",
+    "status": "considering",
+    "phone": "559-903-8163",
+    "notes": "Drapery + lights + candles. Andrew's lead; confirm full inventory."
+  },
+  {
+    "name": "Kiku Floral",
+    "category": "florist",
+    "status": "considering",
+    "phone": "559-266-5480",
+    "notes": "Top pick: 4.9★ ~99 reviews, candlelit centerpieces. ~$3k start."
+  },
+  {
+    "name": "Sweet Dreams Floral",
+    "category": "florist",
+    "status": "considering",
+    "phone": "559-641-7606",
+    "notes": "Only florist that does pipe-and-drape (Yelp 4.8/137). Quote if drapery is a must."
+  },
+  {
+    "name": "Frosted Cakery",
+    "category": "cake",
+    "status": "considering",
+    "phone": "559-917-8880",
+    "notes": "Top bakery pick: refined buttercream, ~376 Yelp reviews. Lock design in writing."
+  },
+  {
+    "name": "Hooper Photo & Film",
+    "category": "photographer",
+    "status": "considering",
+    "phone": "559-513-7210",
+    "notes": "Top photo+video pick, one in-house team. ~$5.5k photo / ~$8.5k photo+video."
+  },
+  {
+    "name": "Franklin and Brianne",
+    "category": "photographer",
+    "status": "considering",
+    "phone": "559-240-5570",
+    "notes": "Most romantic photography (Birdeye 5.0/48). Confirm video scope."
+  },
+  {
+    "name": "Ironfire Studio",
+    "category": "videographer",
+    "status": "considering",
+    "website": "https://ironfirestudio.com",
+    "notes": "Cinematic films (video-only). Pair with a photographer if you want a dedicated film."
+  },
+  {
+    "name": "Arpeggio Strings",
+    "category": "live_music",
+    "status": "considering",
+    "phone": "559-269-1410",
+    "notes": "On-list live strings option."
+  },
+  {
+    "name": "Dr. Loenheim ensemble (Fresno State)",
+    "category": "live_music",
+    "status": "considering",
+    "notes": "Andrew's off-list duet/quartet idea. Only the DJ is list-restricted, so this is allowed."
+  }
+]
