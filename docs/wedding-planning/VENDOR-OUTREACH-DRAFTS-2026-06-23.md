@@ -22,7 +22,13 @@ Shared event facts used in every draft:
 | Maty's Linens & Decor | rentals | matyslinensanddecor@hotmail.com | enhancements beyond venue inclusions |
 | AMS Entertainment | DJ | fresno@amsentertainment.com | **+ asks to confirm they're on Wolf Lakes' preferred-DJ list** |
 | Arpeggio Strings | live music | Arpeggiostrings@yahoo.com | ceremony + cocktail strings |
-| Imago Dei Coffee | coffee bar | events@coffeebeancatering.com | mobile espresso cart |
+| ~~Imago Dei Coffee~~ | coffee bar | — | ✅ **ALREADY CONTACTED — quote in hand. Discard the Gmail draft.** |
+
+> **Imago Dei Coffee — quote received (Andrew, Jun 2026):** **$1,300** for 125 guests / 4 service
+> hours — pro baristas, full custom espresso menu, custom cups, custom latte printing. Logged to the
+> vendor record (priceTotal $1,300). ⚠️ The quote lists date **Nov 7, 2026** with a blank venue —
+> correct to **Apr 9, 2027 @ Wolf Lakes** before accepting. Accept link is in the email thread.
+> The Gmail draft I made for Imago is now redundant — **discard it.**
 
 ---
 
