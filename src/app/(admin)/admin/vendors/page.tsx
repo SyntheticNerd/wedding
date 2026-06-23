@@ -13,6 +13,7 @@ export default function VendorsPage() {
     search: "",
     category: "all",
     status: "all",
+    hidePassed: true,
   });
 
   // Defer the search arg so each keystroke doesn't re-fire the Convex
@@ -36,6 +37,7 @@ export default function VendorsPage() {
         category={filters.category}
         status={filters.status}
         search={deferredSearch}
+        hidePassed={filters.hidePassed}
       />
     </div>
   );

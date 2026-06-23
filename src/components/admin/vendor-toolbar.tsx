@@ -11,6 +11,8 @@ import {
 } from "@/lib/vendor-categories";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ export type VendorFilters = {
   search: string;
   category: Category | "all";
   status: VendorStatus | "all";
+  hidePassed: boolean;
 };
 
 export function VendorToolbar({
@@ -77,6 +80,20 @@ export function VendorToolbar({
           ))}
         </SelectContent>
       </Select>
+      <Label
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+        title="Hide vendors you've passed on. Turn off, or pick the Passed status, to see them."
+      >
+        <Checkbox
+          checked={value.hidePassed}
+          onCheckedChange={(checked) =>
+            onChange({ ...value, hidePassed: checked === true })
+          }
+          disabled={value.status === "passed"}
+          aria-label="Hide passed vendors"
+        />
+        Hide passed
+      </Label>
       <div className="ml-auto flex gap-2">
         <Link
           href="/admin/vendors/bulk"
