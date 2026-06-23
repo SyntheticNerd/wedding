@@ -1,5 +1,31 @@
 # Wedding — Session Handoff (2026-06-23)
 
+> ## ✅ RESOLVED 2026-06-23 (later session) — data applied to PROD
+> The prod deploy key (`prod:notable-pigeon-459`) was supplied and the staged work is
+> **now live on andrewandjewel.com**. **DO NOT run the `--replace`/delete commands below
+> as-written** — prod was NOT the test-data state this doc assumed. What was actually done
+> (all `--append`, non-destructive; full prod backup taken first):
+> - **Budget → $30,000** via `--append` of just the `weddingBudget` key (a `--replace`
+>   would have wiped `coupleNames="Andrew & Jewel"`, which the dev-built payload nulled).
+> - **16 vendors appended** (florists, photo booths, photographer, videographer, DJ, cake,
+>   live music + **Wolf Lakes Park `chosen` @ $16,094**). NOT replaced — prod already had
+>   34 real vendor rows of venue comparison-shopping.
+> - **14 of the 19 groom-side guests appended**, each household given a proper
+>   `INV-XXXX-XXXX` id (not the slug ids in the payload). **Dropped 2 duplicates** already
+>   on prod (Sean Maddox, Monette Montoya). **Held 3**: "Rup Waller" (prod already has a
+>   **Rupinder Paul** — likely the same person; confirm before adding), "Boy 2/Boy 3
+>   Sweeten" (placeholder names — add once real names known).
+> - **NO deletions.** The "test data to clean" list below was WRONG: Dan & Myrna Willson
+>   are part of a real 5-person Willson household on prod; Robin Quinn / Carter / Adversarial
+>   rows are **not on prod at all** (they were dev-only).
+>
+> Open items still needing Andrew: Rup = Rupinder Paul? · Sweeten boys' names · kids' ages
+> (Wolf Lakes comps ≤6) · Adrian Diviccaro address · optional cleanup of the 3 duplicate
+> Wolf Lakes "considering/passed" venue rows now that one is `chosen`.
+>
+> ---
+> *Original handoff below — historical; the re-apply commands are superseded by the above.*
+
 > **READ FIRST if you're picking up the wedding project.** A whole session of admin
 > data work was written to the **WRONG Convex deployment** and must be re-applied to
 > production. Ready-to-import payloads are in `prod-reapply/`.
