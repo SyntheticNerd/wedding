@@ -9,6 +9,7 @@ import { api } from "@/lib/convex";
 import { type Doc } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function ProductRow({
   product,
@@ -20,6 +21,7 @@ export function ProductRow({
   const setHidden = useMutation(api.registryProducts.setHidden);
   const setClaimed = useMutation(api.registryProducts.setClaimed);
   const softDelete = useMutation(api.registryProducts.softDelete);
+  const { confirm, confirmDialog } = useConfirm();
 
   async function toggleHidden() {
     try {
@@ -39,7 +41,12 @@ export function ProductRow({
     }
   }
   async function remove() {
-    if (!confirm(`Delete "${product.name}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${product.name}"?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await softDelete({ id: product._id });
       toast.success("Deleted");
@@ -50,6 +57,7 @@ export function ProductRow({
 
   return (
     <div className="flex items-center gap-3 px-3 py-3">
+      {confirmDialog}
       <div className="size-12 flex items-center justify-center bg-muted rounded overflow-hidden">
         {product.imageUrl ? (
           <Image

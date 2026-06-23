@@ -8,6 +8,7 @@ import { api } from "@/lib/convex";
 import { type Doc } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { buildGoogleCalendarUrl } from "@/lib/google-calendar";
 
 const STATUS_ORDER = ["scheduled", "completed", "cancelled"] as const;
@@ -61,6 +62,7 @@ export function AppointmentCard({
   const setStatus = useMutation(api.vendorAppointments.setStatus);
   const softDelete = useMutation(api.vendorAppointments.softDelete);
   const [busy, setBusy] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   const status = appointment.status as Status;
   const showPastHint = isPast && status === "scheduled";
@@ -88,7 +90,12 @@ export function AppointmentCard({
   }
 
   async function remove() {
-    if (!confirm(`Delete appointment on ${formatDay(appointment.startAt)}?`)) return;
+    const ok = await confirm({
+      title: `Delete appointment on ${formatDay(appointment.startAt)}?`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await softDelete({ id: appointment._id });
       toast.success("Deleted");
@@ -103,6 +110,7 @@ export function AppointmentCard({
         isPast ? "opacity-75" : ""
       }`}
     >
+      {confirmDialog}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium text-sm leading-tight">

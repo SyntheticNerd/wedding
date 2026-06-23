@@ -10,6 +10,7 @@ import type { Id } from "@/lib/convex";
 import { formatUSD } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import {
   categoryLabel,
   includeLabel,
@@ -24,6 +25,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
   const softDelete = useMutation(api.vendors.softDelete);
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const { confirm, confirmDialog } = useConfirm();
 
   if (vendor === undefined) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
@@ -40,7 +42,13 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
 
   async function onDelete() {
     if (!vendor) return;
-    if (!confirm(`Delete ${vendor.name}? This is reversible.`)) return;
+    const ok = await confirm({
+      title: `Delete ${vendor.name}?`,
+      description: "This is reversible.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await softDelete({ id });
       toast.success("Vendor deleted");
@@ -52,6 +60,7 @@ export function VendorDetail({ id }: { id: Id<"vendors"> }) {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {confirmDialog}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest">

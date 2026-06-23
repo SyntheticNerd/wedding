@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/convex";
 import { type Doc } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function RegistryRow({
   registry,
@@ -19,6 +20,7 @@ export function RegistryRow({
 }) {
   const setHidden = useMutation(api.registries.setHidden);
   const softDelete = useMutation(api.registries.softDelete);
+  const { confirm, confirmDialog } = useConfirm();
 
   async function toggleHidden() {
     try {
@@ -29,15 +31,16 @@ export function RegistryRow({
   }
 
   async function remove() {
-    if (
-      !confirm(
+    const ok = await confirm({
+      title: `Delete "${registry.name}"?`,
+      description:
         productCount > 0
-          ? `Delete "${registry.name}"? It has ${productCount} product(s). They will stop rendering publicly until the registry is restored or the products are reassigned.`
-          : `Delete "${registry.name}"?`,
-      )
-    ) {
-      return;
-    }
+          ? `It has ${productCount} product(s). They will stop rendering publicly until the registry is restored or the products are reassigned.`
+          : undefined,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await softDelete({ id: registry._id });
       toast.success("Deleted");
@@ -48,6 +51,7 @@ export function RegistryRow({
 
   return (
     <div className="flex items-center gap-3 px-3 py-3">
+      {confirmDialog}
       <div className="size-10 flex items-center justify-center bg-muted rounded">
         {registry.logoUrl ? (
           <Image
