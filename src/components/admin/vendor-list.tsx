@@ -19,21 +19,30 @@ export function VendorList({
   category,
   status,
   search,
+  hidePassed = true,
 }: {
   category?: Category | "all";
   status?: "considering" | "chosen" | "passed" | "all";
   search?: string;
+  hidePassed?: boolean;
 }) {
-  const vendors = useQuery(api.vendors.list, {
+  const rawVendors = useQuery(api.vendors.list, {
     category: category && category !== "all" ? category : undefined,
     status: status && status !== "all" ? status : undefined,
     search: search?.trim() || undefined,
   });
   const rollups = useQuery(api.vendors.rollups);
 
-  if (vendors === undefined || rollups === undefined) {
+  if (rawVendors === undefined || rollups === undefined) {
     return <Skeleton className="h-64" />;
   }
+
+  // Hide passed-on vendors by default. Skipped when the user is explicitly
+  // viewing the Passed status, so they can always be reached.
+  const vendors =
+    hidePassed && status !== "passed"
+      ? rawVendors.filter((v) => v.status !== "passed")
+      : rawVendors;
 
   if (vendors.length === 0) {
     return (
