@@ -29,12 +29,14 @@ import { RsvpStatusBadge } from "./rsvp-status-badge";
 import {
   GuestPriorityPicker,
   PRIORITY_LEVELS,
+  priorityMeta,
   type GuestPriority,
 } from "./guest-priority";
 import { BulkEditDialog } from "./bulk-edit-dialog";
+import { GuestPrintSheet } from "./guest-print-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Plus, Download, X } from "lucide-react";
+import { Plus, Download, Printer, X } from "lucide-react";
 import Papa from "papaparse";
 
 type Side = "bride" | "groom" | "both" | "all";
@@ -172,13 +174,44 @@ export function GuestTable() {
           <Download className="size-4" />
           Export CSV
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => window.print()}
+          disabled={!guests || guests.length === 0}
+        >
+          <Printer className="size-4" />
+          Print
+        </Button>
       </div>
     ),
     [guests],
   );
 
+  // Printed-roster header bits. printedOn is memoized once so it doesn't drift
+  // across renders; filterLabel mirrors the active filters onto the page.
+  const printedOn = useMemo(
+    () =>
+      new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    [],
+  );
+  const filterLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (side !== "all") parts.push(SIDE_LABEL[side]);
+    if (status !== "all") parts.push(`RSVP: ${status}`);
+    if (priority === "untriaged") parts.push("Untriaged");
+    else if (priority !== "all") parts.push(priorityMeta(priority).label);
+    if (search.trim()) parts.push(`"${search.trim()}"`);
+    return parts.join(" · ");
+  }, [side, status, priority, search]);
+
   return (
-    <div className="space-y-4">
+    <>
+    <div className="space-y-4 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-2">
           <Input
@@ -510,6 +543,14 @@ export function GuestTable() {
       />
       {confirmDialog}
     </div>
+
+    {/* Print-only formatted roster — reflects the current filtered set. */}
+    <GuestPrintSheet
+      guests={guests ?? []}
+      filterLabel={filterLabel}
+      printedOn={printedOn}
+    />
+    </>
   );
 }
 
