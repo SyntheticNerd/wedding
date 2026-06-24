@@ -58,9 +58,15 @@ function groupByHousehold(guests: Doc<"guests">[]): Household[] {
       a.firstName.localeCompare(b.firstName),
     ),
   }));
-  households.sort((a, b) =>
-    (a.members[0]?.lastName ?? "").localeCompare(b.members[0]?.lastName ?? ""),
-  );
+  households.sort((a, b) => {
+    const byLast = (a.members[0]?.lastName ?? "").localeCompare(
+      b.members[0]?.lastName ?? "",
+    );
+    if (byLast !== 0) return byLast;
+    return (a.members[0]?.firstName ?? "").localeCompare(
+      b.members[0]?.firstName ?? "",
+    );
+  });
   return households;
 }
 
@@ -103,7 +109,8 @@ export function GuestPrintSheet({
           {guests.length} {guests.length === 1 ? "guest" : "guests"} ·{" "}
           {households.length}{" "}
           {households.length === 1 ? "household" : "households"}
-          {filterLabel ? ` · ${filterLabel}` : ""} · {printedOn}
+          {filterLabel ? ` · ${filterLabel}` : ""}
+          {printedOn ? ` · ${printedOn}` : ""}
         </p>
         {prioCounts && <p className="mt-0.5 text-xs">{prioCounts}</p>}
       </header>
@@ -121,7 +128,9 @@ export function GuestPrintSheet({
                 {h.invitationId}
               </div>
               <ul className="space-y-1">
-                {h.members.map((g) => (
+                {h.members.map((g) => {
+                  const plusOne = plusOneLabel(g);
+                  return (
                   <li
                     key={g._id}
                     className="flex items-baseline gap-2 text-sm"
@@ -143,16 +152,15 @@ export function GuestPrintSheet({
                     <span className="w-24 text-xs text-black/70">
                       {rsvpLabel(g)}
                     </span>
-                    {plusOneLabel(g) && (
-                      <span className="text-xs text-black/70">
-                        {plusOneLabel(g)}
-                      </span>
+                    {plusOne && (
+                      <span className="text-xs text-black/70">{plusOne}</span>
                     )}
                     <span className="ml-auto">
                       <GuestPriorityBadge priority={g.priority} />
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             </section>
           ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -188,17 +188,21 @@ export function GuestTable() {
     [guests],
   );
 
-  // Printed-roster header bits. printedOn is memoized once so it doesn't drift
-  // across renders; filterLabel mirrors the active filters onto the page.
-  const printedOn = useMemo(
-    () =>
+  // Printed-roster header bits. printedOn is set after mount (not during render)
+  // so the server- and first-client-render markup match — no hydration drift
+  // across a midnight boundary. It's only shown inside the print-only sheet.
+  const [printedOn, setPrintedOn] = useState("");
+  useEffect(() => {
+    // Client-only date, set post-mount to avoid an SSR/hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPrintedOn(
       new Date().toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
-    [],
-  );
+    );
+  }, []);
   const filterLabel = useMemo(() => {
     const parts: string[] = [];
     if (side !== "all") parts.push(SIDE_LABEL[side]);
