@@ -83,6 +83,13 @@
   --status-pending: oklch(0.6 0.012 80);   /* neutral warm */
   --status-offline: oklch(0.74 0.12 75);   /* amber */
 
+  /* Guest priority (want-level) accents — admin triage. Aliased to the status
+     palette today, but named independently so priority can be recolored
+     without touching RSVP-status semantics. */
+  --priority-must-have: var(--status-yes);  /* green  */
+  --priority-kind-of: var(--status-offline);/* amber  */
+  --priority-obligated: var(--status-no);   /* rose   */
+
   /* shadcn semantic tokens mapped onto the brand palette */
   --background: var(--cream);
   --foreground: var(--charcoal);

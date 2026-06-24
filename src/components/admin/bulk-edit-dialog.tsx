@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { PRIORITY_LEVELS, type GuestPriority } from "./guest-priority";
 
 /* Each editable field has its own opt-in toggle so partial edits never
    accidentally clobber unrelated data. The patch object only carries
@@ -37,6 +38,7 @@ interface FormState {
   plusOneAllowed: { on: boolean; value: boolean };
   rsvpStatus: { on: boolean; value: RsvpStatus };
   rsvpOffline: { on: boolean; value: boolean };
+  priority: { on: boolean; value: GuestPriority };
   invitationId: { on: boolean; value: string };
   address: {
     on: boolean;
@@ -56,6 +58,7 @@ const blank: FormState = {
   plusOneAllowed: { on: false, value: false },
   rsvpStatus: { on: false, value: "pending" },
   rsvpOffline: { on: false, value: false },
+  priority: { on: false, value: "must_have" },
   invitationId: { on: false, value: "" },
   address: {
     on: false,
@@ -98,6 +101,7 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
     }
     if (state.rsvpStatus.on) patch.rsvpStatus = state.rsvpStatus.value;
     if (state.rsvpOffline.on) patch.rsvpOffline = state.rsvpOffline.value;
+    if (state.priority.on) patch.priority = state.priority.value;
     if (state.invitationId.on) {
       const trimmed = state.invitationId.value.trim();
       if (!trimmed) {
@@ -289,6 +293,35 @@ export function BulkEditDialog({ open, onOpenChange, ids, onApplied }: Props) {
               labelTrue="Offline"
               labelFalse="Online (form)"
             />
+          </Toggleable>
+
+          <Toggleable
+            label="Priority"
+            on={state.priority.on}
+            onToggle={(on) =>
+              setState((s) => ({ ...s, priority: { ...s.priority, on } }))
+            }
+          >
+            <Select
+              value={state.priority.value}
+              onValueChange={(v) =>
+                setState((s) => ({
+                  ...s,
+                  priority: { ...s.priority, value: v as GuestPriority },
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITY_LEVELS.map((meta) => (
+                  <SelectItem key={meta.value} value={meta.value}>
+                    {meta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Toggleable>
 
           <Toggleable

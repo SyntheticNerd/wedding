@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { type Doc, type Id } from "./_generated/dataModel";
-import { RSVP_STATUS, SIDE } from "./schema";
+import { GUEST_PRIORITY, RSVP_STATUS, SIDE } from "./schema";
 import {
   generateInvitationId,
   nameKey,
@@ -36,6 +36,7 @@ const guestFields = {
   dietaryNotes: v.optional(v.string()),
   noteToCouple: v.optional(v.string()),
   adminNotes: v.optional(v.string()),
+  priority: v.optional(GUEST_PRIORITY),
 };
 
 /* ----------------------------------------------------------------------
@@ -136,6 +137,14 @@ export const rollups = query({
     const pending = byStatus("pending");
     const no = byStatus("no");
 
+    // Priority triage counts — answers "does our must-have list fit budget?"
+    const byPriority = (p: Doc<"guests">["priority"]) =>
+      all.filter((g) => g.priority === p).length;
+    const mustHave = byPriority("must_have");
+    const kindOf = byPriority("kind_of");
+    const obligated = byPriority("obligated");
+    const priorityUnset = byPriority(undefined);
+
     // Today's confirmed seats.
     const confirmed = yes + plusOnesYes;
     // Worst-case if every pending guest + every unresolved plus-one says yes.
@@ -157,6 +166,10 @@ export const rollups = query({
       attending: confirmed,
       confirmed,
       projectedMax,
+      mustHave,
+      kindOf,
+      obligated,
+      priorityUnset,
     };
   },
 });
@@ -254,6 +267,7 @@ export const create = mutation({
       dietaryNotes: args.dietaryNotes,
       noteToCouple: args.noteToCouple,
       adminNotes: args.adminNotes,
+      priority: args.priority,
       createdAt: now,
       createdBy: userId,
       updatedAt: now,
@@ -304,6 +318,9 @@ export const update = mutation({
       dietaryNotes: args.dietaryNotes,
       noteToCouple: args.noteToCouple,
       adminNotes: args.adminNotes,
+      // Written directly (not `?? existing`) so the form can clear it back to
+      // untriaged by sending undefined.
+      priority: args.priority,
       updatedAt: Date.now(),
     };
     await ctx.db.patch(args.id, next);
@@ -319,6 +336,36 @@ export const update = mutation({
         after,
       });
     }
+    return args.id;
+  },
+});
+
+/**
+ * Quick single-field priority set for inline tagging from the guest table.
+ * Cheaper and simpler than the full `update` form round-trip. Omit `priority`
+ * (or pass undefined) to clear it back to untriaged.
+ */
+export const setPriority = mutation({
+  args: {
+    id: v.id("guests"),
+    priority: v.optional(GUEST_PRIORITY),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAdmin(ctx);
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Guest not found");
+    if (existing.priority === args.priority) return args.id; // no-op
+    const now = Date.now();
+    await ctx.db.patch(args.id, { priority: args.priority, updatedAt: now });
+    await ctx.db.insert("rsvpAuditLog", {
+      guestId: args.id,
+      invitationId: existing.invitationId,
+      changedAt: now,
+      changedBy: "admin",
+      changedByUserId: userId,
+      before: { priority: existing.priority },
+      after: { priority: args.priority },
+    });
     return args.id;
   },
 });
@@ -384,6 +431,7 @@ export const bulkUpdate = mutation({
       address: v.optional(ADDRESS),
       adminNotes: v.optional(v.string()),
       adminNotesMode: v.optional(ADMIN_NOTES_MODE),
+      priority: v.optional(GUEST_PRIORITY),
     }),
   },
   handler: async (ctx, args) => {
@@ -442,6 +490,7 @@ export const bulkUpdate = mutation({
           next.adminNotes = incoming || undefined;
         }
       }
+      if (patch.priority !== undefined) next.priority = patch.priority;
 
       await ctx.db.patch(id, next);
 
@@ -557,6 +606,7 @@ type AuditFields = Pick<
   | "plusOneName"
   | "dietaryNotes"
   | "noteToCouple"
+  | "priority"
 >;
 
 function pickAuditFields(g: {
@@ -567,6 +617,7 @@ function pickAuditFields(g: {
   plusOneName?: string;
   dietaryNotes?: string;
   noteToCouple?: string;
+  priority?: Doc<"guests">["priority"];
 }): AuditFields {
   return {
     rsvpStatus: g.rsvpStatus,
@@ -576,6 +627,7 @@ function pickAuditFields(g: {
     plusOneName: g.plusOneName,
     dietaryNotes: g.dietaryNotes,
     noteToCouple: g.noteToCouple,
+    priority: g.priority,
   };
 }
 
@@ -587,7 +639,8 @@ function auditWorthyChanged(a: AuditFields, b: AuditFields): boolean {
     a.plusOneRsvp !== b.plusOneRsvp ||
     a.plusOneName !== b.plusOneName ||
     a.dietaryNotes !== b.dietaryNotes ||
-    a.noteToCouple !== b.noteToCouple
+    a.noteToCouple !== b.noteToCouple ||
+    a.priority !== b.priority
   );
 }
 

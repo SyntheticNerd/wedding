@@ -13,6 +13,15 @@ export const SIDE = v.union(
   v.literal("both"),
 );
 
+// Private admin-only triage signal: how much the couple actually wants this
+// guest there. Used to trim the list against budget/capacity. Never shown to
+// guests. Unset (field absent) = not yet triaged.
+export const GUEST_PRIORITY = v.union(
+  v.literal("must_have"), // green  — "must haves"
+  v.literal("kind_of"), //   yellow — "kind of want"
+  v.literal("obligated"), //  red    — "don't want but feel obligated"
+);
+
 export default defineSchema({
   guests: defineTable({
     firstName: v.string(),
@@ -42,6 +51,7 @@ export default defineSchema({
     dietaryNotes: v.optional(v.string()),
     noteToCouple: v.optional(v.string()),
     adminNotes: v.optional(v.string()),
+    priority: v.optional(GUEST_PRIORITY),
     createdAt: v.number(),
     createdBy: v.string(),
     updatedAt: v.number(),
