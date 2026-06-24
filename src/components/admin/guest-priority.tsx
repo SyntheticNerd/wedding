@@ -47,8 +47,8 @@ export const PRIORITY_LEVELS: readonly PriorityMeta[] = [
   },
   {
     value: "obligated",
-    label: "Obligated",
-    hint: "Don't really want, but feel obligated",
+    label: "Not really",
+    hint: "Don't really want them, but feel obligated",
     token: "--priority-obligated", // rose
   },
 ];
