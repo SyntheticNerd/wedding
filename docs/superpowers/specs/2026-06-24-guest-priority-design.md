@@ -17,7 +17,7 @@ A guest's `priority` is one of three values, or unset (no opinion yet):
 |--------------|--------|---------------------------------------|-------------|
 | `must_have`  | green  | "must haves"                          | Must-have   |
 | `kind_of`    | yellow | "kind of want"                        | Kind of     |
-| `obligated`  | red    | "don't want but feel obligated"       | Obligated   |
+| `obligated`  | red    | "don't want but feel obligated"       | Not really  |
 | _(unset)_    | —      | not yet triaged                       | —           |
 
 Colors reuse existing status tokens so we add no new design vocabulary:

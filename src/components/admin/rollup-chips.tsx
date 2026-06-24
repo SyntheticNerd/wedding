@@ -59,7 +59,7 @@ export function RollupChips() {
       tone: "text-[var(--priority-kind-of)]",
     },
     {
-      label: "Obligated",
+      label: "Not really",
       value: rollups.obligated,
       tone: "text-[var(--priority-obligated)]",
     },
@@ -84,7 +84,7 @@ export function RollupChips() {
         section="priority"
         title="Priority"
         chips={priority}
-        collapsedSummary={`${rollups.mustHave} must-have · ${rollups.obligated} obligated`}
+        collapsedSummary={`${rollups.mustHave} must-have · ${rollups.obligated} not really`}
       />
     </div>
   );
