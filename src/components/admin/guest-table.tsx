@@ -26,6 +26,11 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RsvpStatusBadge } from "./rsvp-status-badge";
+import {
+  GuestPriorityPicker,
+  PRIORITY_LEVELS,
+  type GuestPriority,
+} from "./guest-priority";
 import { BulkEditDialog } from "./bulk-edit-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/ui/confirm-dialog";
@@ -34,6 +39,7 @@ import Papa from "papaparse";
 
 type Side = "bride" | "groom" | "both" | "all";
 type StatusFilter = "all" | "pending" | "yes" | "no";
+type PriorityFilter = "all" | GuestPriority | "untriaged";
 
 const SIDE_LABEL: Record<Exclude<Side, "all">, string> = {
   bride: "Bride",
@@ -45,17 +51,42 @@ export function GuestTable() {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<Side>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [priority, setPriority] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<Set<Id<"guests">>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const bulkSoftDelete = useMutation(api.guests.bulkSoftDelete);
+  const setGuestPriority = useMutation(api.guests.setPriority);
   const { confirm, confirmDialog } = useConfirm();
 
-  const guests = useQuery(api.guests.list, {
+  const allGuests = useQuery(api.guests.list, {
     side: side === "all" ? undefined : side,
     status: status === "all" ? undefined : status,
     search: search.trim() || undefined,
   }) as Doc<"guests">[] | undefined;
+
+  // Priority is filtered client-side: the "untriaged" case (field absent) is
+  // awkward to express as a single Convex union arg, and the list is small.
+  const guests = useMemo(() => {
+    if (!allGuests) return allGuests;
+    if (priority === "all") return allGuests;
+    if (priority === "untriaged") {
+      return allGuests.filter((g) => g.priority === undefined);
+    }
+    return allGuests.filter((g) => g.priority === priority);
+  }, [allGuests, priority]);
+
+  function onSetPriority(id: Id<"guests">, next?: GuestPriority) {
+    startTransition(async () => {
+      try {
+        await setGuestPriority({ id, priority: next });
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Couldn't set priority",
+        );
+      }
+    });
+  }
 
   // When filters change, drop any selection that's no longer visible — keeps
   // the action bar count honest with what the user can actually see.
@@ -181,6 +212,23 @@ export function GuestTable() {
               <SelectItem value="no">No</SelectItem>
             </SelectContent>
           </Select>
+          <Select
+            value={priority}
+            onValueChange={(v) => setPriority(v as PriorityFilter)}
+          >
+            <SelectTrigger className="sm:w-40">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All priorities</SelectItem>
+              {PRIORITY_LEVELS.map((meta) => (
+                <SelectItem key={meta.value} value={meta.value}>
+                  {meta.label}
+                </SelectItem>
+              ))}
+              <SelectItem value="untriaged">Untriaged</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {headerActions}
       </div>
@@ -196,7 +244,10 @@ export function GuestTable() {
           ))
         ) : guests.length === 0 ? (
           <li className="text-center py-12 text-muted-foreground text-sm">
-            {search.trim() || side !== "all" || status !== "all"
+            {search.trim() ||
+            side !== "all" ||
+            status !== "all" ||
+            priority !== "all"
               ? "No guests match these filters."
               : "No guests yet — add your first one."}
           </li>
@@ -214,7 +265,7 @@ export function GuestTable() {
                 </div>
                 <Link
                   href={`/admin/guests/${g._id}`}
-                  className="flex-1 flex items-start justify-between gap-3 p-3 active:bg-muted/50 transition-colors"
+                  className="flex-1 min-w-0 flex items-start gap-3 p-3 active:bg-muted/50 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-medium truncate">
@@ -237,13 +288,20 @@ export function GuestTable() {
                       </div>
                     )}
                   </div>
-                  <div className="shrink-0">
-                    <RsvpStatusBadge
-                      status={g.rsvpStatus}
-                      offline={g.rsvpOffline}
-                    />
-                  </div>
                 </Link>
+                {/* Outside the Link so tapping these doesn't navigate. */}
+                <div className="shrink-0 flex flex-col items-end justify-center gap-1.5 py-3 pr-3">
+                  <RsvpStatusBadge
+                    status={g.rsvpStatus}
+                    offline={g.rsvpOffline}
+                  />
+                  <GuestPriorityPicker
+                    value={g.priority}
+                    onChange={(next) => onSetPriority(g._id, next)}
+                    disabled={pending}
+                    ariaLabel={`Set priority for ${g.firstName} ${g.lastName}`}
+                  />
+                </div>
               </li>
             );
           })
@@ -265,6 +323,7 @@ export function GuestTable() {
                 />
               </TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Priority</TableHead>
               <TableHead>Side</TableHead>
               <TableHead>Invitation</TableHead>
               <TableHead>RSVP</TableHead>
@@ -276,7 +335,7 @@ export function GuestTable() {
             {guests === undefined ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`s${i}`}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
@@ -286,10 +345,13 @@ export function GuestTable() {
             ) : guests.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-12 text-muted-foreground"
                 >
-                  {search.trim() || side !== "all" || status !== "all"
+                  {search.trim() ||
+                  side !== "all" ||
+                  status !== "all" ||
+                  priority !== "all"
                     ? "No guests match these filters."
                     : "No guests yet — add your first one."}
                 </TableCell>
@@ -332,6 +394,14 @@ export function GuestTable() {
                           aka {g.aliases.join(", ")}
                         </div>
                       )}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <GuestPriorityPicker
+                        value={g.priority}
+                        onChange={(next) => onSetPriority(g._id, next)}
+                        disabled={pending}
+                        ariaLabel={`Set priority for ${g.firstName} ${g.lastName}`}
+                      />
                     </TableCell>
                     <TableCell className="text-sm">
                       {SIDE_LABEL[g.side]}
@@ -452,6 +522,7 @@ function exportCsv(guests: Doc<"guests">[]) {
     email: g.email ?? "",
     invitationId: g.invitationId,
     side: g.side,
+    priority: g.priority ?? "",
     isChild: g.isChild ? "true" : "false",
     rsvpStatus: g.rsvpStatus,
     rsvpOffline: g.rsvpOffline ? "true" : "false",

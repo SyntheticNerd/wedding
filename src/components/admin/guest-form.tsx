@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AuditLog } from "./audit-log";
+import { PRIORITY_LEVELS, type GuestPriority } from "./guest-priority";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Mode = "create" | "edit";
@@ -44,6 +45,7 @@ type FormState = {
   phoneRaw: string;
   email: string;
   side: "bride" | "groom" | "both";
+  priority: GuestPriority | "";
   isChild: boolean;
   rsvpStatus: "pending" | "yes" | "no";
   rsvpOffline: boolean;
@@ -73,6 +75,7 @@ function fromGuest(
     phoneRaw: g?.phoneE164 ?? "",
     email: g?.email ?? "",
     side: g?.side ?? "both",
+    priority: g?.priority ?? "",
     isChild: g?.isChild ?? false,
     rsvpStatus: g?.rsvpStatus ?? "pending",
     rsvpOffline: g?.rsvpOffline ?? false,
@@ -134,6 +137,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
       phoneRaw: state.phoneRaw.trim() || undefined,
       email: state.email.trim() || undefined,
       side: state.side,
+      priority: state.priority === "" ? undefined : state.priority,
       isChild: state.isChild,
       rsvpStatus: state.rsvpStatus,
       rsvpOffline: state.rsvpOffline,
@@ -307,6 +311,29 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
               <SelectItem value="bride">Bride</SelectItem>
               <SelectItem value="groom">Groom</SelectItem>
               <SelectItem value="both">Both</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field
+          label="Priority"
+          hint="Private triage — how much you want them there. Never shown to guests."
+        >
+          <Select
+            value={state.priority || "unset"}
+            onValueChange={(v) =>
+              handleChange("priority", v === "unset" ? "" : (v as GuestPriority))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unset">— not set —</SelectItem>
+              {PRIORITY_LEVELS.map((meta) => (
+                <SelectItem key={meta.value} value={meta.value}>
+                  {meta.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>

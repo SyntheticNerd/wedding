@@ -47,6 +47,25 @@ export function RollupChips() {
     },
   ];
 
+  const priority: Chip[] = [
+    {
+      label: "Must-have",
+      value: rollups.mustHave,
+      tone: "text-[var(--status-yes)]",
+    },
+    {
+      label: "Kind of",
+      value: rollups.kindOf,
+      tone: "text-[var(--status-offline)]",
+    },
+    {
+      label: "Obligated",
+      value: rollups.obligated,
+      tone: "text-[var(--status-no)]",
+    },
+    { label: "Untriaged", value: rollups.priorityUnset },
+  ];
+
   return (
     <div className="space-y-3">
       <ChipRow
@@ -60,6 +79,12 @@ export function RollupChips() {
         title="Attendance"
         chips={attendance}
         collapsedSummary={`${rollups.confirmed} confirmed · ${rollups.pending} pending`}
+      />
+      <ChipRow
+        section="priority"
+        title="Priority"
+        chips={priority}
+        collapsedSummary={`${rollups.mustHave} must-have · ${rollups.obligated} obligated`}
       />
     </div>
   );
@@ -77,7 +102,7 @@ function ChipRow({
   chips,
   collapsedSummary,
 }: {
-  section: "invitations" | "attendance";
+  section: "invitations" | "attendance" | "priority";
   title: string;
   chips: Chip[];
   collapsedSummary?: string;
@@ -95,7 +120,7 @@ function ChipRow({
       const raw = window.localStorage.getItem(COLLAPSE_STORAGE_KEY);
       if (!raw) return;
       const stored = JSON.parse(raw) as Partial<
-        Record<"invitations" | "attendance", boolean>
+        Record<"invitations" | "attendance" | "priority", boolean>
       >;
       if (typeof stored[section] === "boolean") {
         // eslint-disable-next-line react-hooks/set-state-in-effect
