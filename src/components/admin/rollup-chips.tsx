@@ -51,17 +51,17 @@ export function RollupChips() {
     {
       label: "Must-have",
       value: rollups.mustHave,
-      tone: "text-[var(--status-yes)]",
+      tone: "text-[var(--priority-must-have)]",
     },
     {
       label: "Kind of",
       value: rollups.kindOf,
-      tone: "text-[var(--status-offline)]",
+      tone: "text-[var(--priority-kind-of)]",
     },
     {
       label: "Obligated",
       value: rollups.obligated,
-      tone: "text-[var(--status-no)]",
+      tone: "text-[var(--priority-obligated)]",
     },
     { label: "Untriaged", value: rollups.priorityUnset },
   ];

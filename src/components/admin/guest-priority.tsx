@@ -37,19 +37,19 @@ export const PRIORITY_LEVELS: readonly PriorityMeta[] = [
     value: "must_have",
     label: "Must-have",
     hint: "Must be there",
-    token: "--status-yes", // green
+    token: "--priority-must-have", // green
   },
   {
     value: "kind_of",
     label: "Kind of",
     hint: "Kind of want them",
-    token: "--status-offline", // amber
+    token: "--priority-kind-of", // amber
   },
   {
     value: "obligated",
     label: "Obligated",
     hint: "Don't really want, but feel obligated",
-    token: "--status-no", // rose
+    token: "--priority-obligated", // rose
   },
 ];
 
