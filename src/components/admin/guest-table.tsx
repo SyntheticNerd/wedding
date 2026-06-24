@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -29,12 +29,14 @@ import { RsvpStatusBadge } from "./rsvp-status-badge";
 import {
   GuestPriorityPicker,
   PRIORITY_LEVELS,
+  priorityMeta,
   type GuestPriority,
 } from "./guest-priority";
 import { BulkEditDialog } from "./bulk-edit-dialog";
+import { GuestPrintSheet } from "./guest-print-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Plus, Download, X } from "lucide-react";
+import { Plus, Download, Printer, X } from "lucide-react";
 import Papa from "papaparse";
 
 type Side = "bride" | "groom" | "both" | "all";
@@ -172,13 +174,48 @@ export function GuestTable() {
           <Download className="size-4" />
           Export CSV
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => window.print()}
+          disabled={!guests || guests.length === 0}
+        >
+          <Printer className="size-4" />
+          Print
+        </Button>
       </div>
     ),
     [guests],
   );
 
+  // Printed-roster header bits. printedOn is set after mount (not during render)
+  // so the server- and first-client-render markup match — no hydration drift
+  // across a midnight boundary. It's only shown inside the print-only sheet.
+  const [printedOn, setPrintedOn] = useState("");
+  useEffect(() => {
+    // Client-only date, set post-mount to avoid an SSR/hydration mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPrintedOn(
+      new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    );
+  }, []);
+  const filterLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (side !== "all") parts.push(SIDE_LABEL[side]);
+    if (status !== "all") parts.push(`RSVP: ${status}`);
+    if (priority === "untriaged") parts.push("Untriaged");
+    else if (priority !== "all") parts.push(priorityMeta(priority).label);
+    if (search.trim()) parts.push(`"${search.trim()}"`);
+    return parts.join(" · ");
+  }, [side, status, priority, search]);
+
   return (
-    <div className="space-y-4">
+    <>
+    <div className="space-y-4 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-2">
           <Input
@@ -510,6 +547,14 @@ export function GuestTable() {
       />
       {confirmDialog}
     </div>
+
+    {/* Print-only formatted roster — reflects the current filtered set. */}
+    <GuestPrintSheet
+      guests={guests ?? []}
+      filterLabel={filterLabel}
+      printedOn={printedOn}
+    />
+    </>
   );
 }
 
