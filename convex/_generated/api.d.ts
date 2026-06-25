@@ -9,8 +9,10 @@
  */
 
 import type * as adminProfiles from "../adminProfiles.js";
+import type * as checklist from "../checklist.js";
 import type * as guests from "../guests.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_checklistDefaults from "../lib/checklistDefaults.js";
 import type * as lib_normalize from "../lib/normalize.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
@@ -31,8 +33,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adminProfiles: typeof adminProfiles;
+  checklist: typeof checklist;
   guests: typeof guests;
   "lib/auth": typeof lib_auth;
+  "lib/checklistDefaults": typeof lib_checklistDefaults;
   "lib/normalize": typeof lib_normalize;
   messages: typeof messages;
   notifications: typeof notifications;

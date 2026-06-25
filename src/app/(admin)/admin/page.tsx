@@ -2,6 +2,7 @@ import { CountdownHero } from "@/components/admin/landing/countdown-hero";
 import { QuickActions } from "@/components/admin/landing/quick-actions";
 import { GuestsCard } from "@/components/admin/landing/guests-card";
 import { MoneyCard } from "@/components/admin/landing/money-card";
+import { ChecklistCard } from "@/components/admin/landing/checklist-card";
 import { UpcomingAppointmentsCard } from "@/components/admin/landing/upcoming-appointments-card";
 
 export default function AdminLandingPage() {
@@ -13,6 +14,7 @@ export default function AdminLandingPage() {
         <GuestsCard />
         <MoneyCard />
       </div>
+      <ChecklistCard />
       <UpcomingAppointmentsCard />
     </div>
   );

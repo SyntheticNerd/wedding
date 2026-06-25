@@ -204,6 +204,26 @@ export default defineSchema({
       filterFields: ["registryId", "hidden", "deletedAt"],
     }),
 
+  /* Wedding-planning checklist. Each item is its own row (not an array on a
+     parent doc) so the list can grow without hitting the document size limit
+     and toggling one item doesn't rewrite the rest. `category`, when set, is a
+     vendor-category key (see src/lib/vendor-categories.ts) that ties the item
+     to the vendor list. */
+  checklistItems: defineTable({
+    title: v.string(),
+    section: v.string(),
+    category: v.optional(v.string()),
+    done: v.boolean(),
+    doneAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    dueAt: v.optional(v.number()),
+    displayOrder: v.number(),
+    createdAt: v.number(),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_order", ["deletedAt", "displayOrder"]),
+
   vendorAppointments: defineTable({
     vendorId: v.id("vendors"),
     startAt: v.number(),
