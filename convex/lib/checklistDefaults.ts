@@ -72,6 +72,7 @@ export const CHECKLIST_DEFAULTS: ChecklistDefault[] = [
   { section: "Vendors to finalize", title: "Book makeup artist", category: "makeup" },
   { section: "Vendors to finalize", title: "Decide on a day-of coordinator", category: "day_of_coordinator" },
   { section: "Vendors to finalize", title: "Arrange transportation / limo (Royal Coach Limousine)", category: "transportation" },
+  { section: "Vendors to finalize", title: "Book an ASL interpreter for the ceremony & toasts" },
   { section: "Decor & details", title: "Finalize ceremony decor (arch, aisle, backdrop)" },
   { section: "Decor & details", title: "Finalize reception centerpieces & floral plan" },
   { section: "Decor & details", title: "Drapery plan with Maty's" },
