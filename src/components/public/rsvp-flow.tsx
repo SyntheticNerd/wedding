@@ -536,7 +536,7 @@ function RsvpFormFields({
             rows={3}
             value={noteToCouple}
             onChange={(e) => setNoteToCouple(e.target.value)}
-            placeholder="Anything you&apos;d like to share"
+            placeholder="Anything you'd like to share"
             maxLength={2000}
           />
         </FieldStack>
