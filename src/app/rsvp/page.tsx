@@ -8,6 +8,16 @@ import { LogoMark } from "@/components/site/logo";
 // statically prerender the empty form shell.
 export const dynamic = "force-dynamic";
 
+function formatWeddingDate(dateISO: string): string {
+  // Parse as local date parts to avoid a UTC off-by-one on the displayed day.
+  const [year, month, day] = dateISO.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default async function RsvpPage({
   searchParams,
 }: {
@@ -40,7 +50,7 @@ export default async function RsvpPage({
             <div className="mx-auto mt-6 h-px w-16 bg-blush/40" aria-hidden />
             {WEDDING.dateISO && (
               <p className="font-heading italic text-lg sm:text-xl text-muted-foreground mt-4">
-                {WEDDING.dateISO}
+                {formatWeddingDate(WEDDING.dateISO)}
               </p>
             )}
           </div>
