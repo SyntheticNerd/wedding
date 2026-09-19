@@ -114,13 +114,12 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
     setState((s) => ({ ...s, [key]: value }));
   }
 
-  // Paste a whole address into Line 1 and split it across the fields. Falls
-  // back to a normal paste when the text doesn't look like a full address
-  // (parseAddress returns null unless it finds a ZIP/postal code).
-  function handleAddressPaste(e: React.ClipboardEvent<HTMLInputElement>) {
-    const parsed = parseAddress(e.clipboardData.getData("text"));
-    if (!parsed) return;
-    e.preventDefault();
+  // Split a full address string across the fields. Returns whether it filled
+  // (parseAddress returns null unless it finds a ZIP/postal code, so a normal
+  // value passes through untouched).
+  function fillFromAddress(text: string): boolean {
+    const parsed = parseAddress(text);
+    if (!parsed) return false;
     setState((s) => ({
       ...s,
       addressLine1: parsed.line1,
@@ -131,6 +130,21 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
       addressCountry: parsed.country,
     }));
     toast.success("Address split into fields");
+    return true;
+  }
+
+  // Desktop paste fires a ClipboardEvent we can pre-empt. Mobile browsers
+  // (notably iOS Safari) often don't, so the onChange handler on Line 1 is the
+  // real cross-platform path — it re-parses whatever lands in the field.
+  function handleAddressPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    if (fillFromAddress(e.clipboardData.getData("text"))) e.preventDefault();
+  }
+
+  function handleLine1Change(value: string) {
+    // A pasted address arrives as one big onChange; split it. Normal typing
+    // won't parse (no ZIP + multiple parts), so it falls through unchanged.
+    if (value !== state.addressLine1 && fillFromAddress(value)) return;
+    handleChange("addressLine1", value);
   }
 
   function buildPayload() {
@@ -480,9 +494,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
             >
               <Input
                 value={state.addressLine1}
-                onChange={(e) =>
-                  handleChange("addressLine1", e.target.value)
-                }
+                onChange={(e) => handleLine1Change(e.target.value)}
                 onPaste={handleAddressPaste}
                 placeholder="123 Main St, Fresno, CA 93720"
               />
