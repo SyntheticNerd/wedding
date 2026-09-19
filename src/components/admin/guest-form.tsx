@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useMutation } from "convex/react";
+import { ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/convex";
 import type { Doc } from "@/lib/convex";
@@ -145,6 +146,26 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
     // won't parse (no ZIP + multiple parts), so it falls through unchanged.
     if (value !== state.addressLine1 && fillFromAddress(value)) return;
     handleChange("addressLine1", value);
+  }
+
+  // Explicit, gesture-driven clipboard read — the reliable path on mobile,
+  // where onPaste/onChange splitting can't be counted on. Reads the clipboard
+  // on tap and splits it; if it can't parse (no ZIP), it still drops the raw
+  // text into Line 1 so nothing is lost.
+  async function pasteAddressFromClipboard() {
+    try {
+      const text = (await navigator.clipboard.readText())?.trim();
+      if (!text) {
+        toast.error("Clipboard is empty — copy an address first");
+        return;
+      }
+      if (!fillFromAddress(text)) {
+        handleChange("addressLine1", text);
+        toast.message("Pasted into Line 1 (couldn't find a ZIP to auto-split)");
+      }
+    } catch {
+      toast.error("Couldn't read the clipboard — paste into Line 1 by hand");
+    }
   }
 
   function buildPayload() {
@@ -493,14 +514,26 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
             <Field
               label="Line 1"
               className="sm:col-span-2"
-              hint="Paste a full address here to auto-fill the fields below."
+              hint="Tap “Paste address” after copying a full address, or paste into this field — it auto-fills the rest."
             >
-              <Input
-                value={state.addressLine1}
-                onChange={(e) => handleLine1Change(e.target.value)}
-                onPaste={handleAddressPaste}
-                placeholder="123 Main St, Fresno, CA 93720"
-              />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={state.addressLine1}
+                  onChange={(e) => handleLine1Change(e.target.value)}
+                  onPaste={handleAddressPaste}
+                  placeholder="123 Main St, Fresno, CA 93720"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={pasteAddressFromClipboard}
+                  className="shrink-0"
+                >
+                  <ClipboardPaste className="size-4" />
+                  Paste address
+                </Button>
+              </div>
             </Field>
             <Field label="Line 2" className="sm:col-span-2">
               <Input
