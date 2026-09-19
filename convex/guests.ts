@@ -278,6 +278,76 @@ export const create = mutation({
   },
 });
 
+/**
+ * Quick-add several children into one household in a single call.
+ *
+ * Children are stored as ordinary guest rows (isChild=true) so they flow
+ * through headcount, seating, the printed roster, and CSV like everyone else —
+ * they just skip their own plus-one and share the household's invitation/QR.
+ * Last name, side, and mailing address default from an existing household
+ * member when not supplied, so the common case is "how many kids + names".
+ */
+export const addChildren = mutation({
+  args: {
+    invitationId: v.string(),
+    names: v.array(v.string()),
+    lastName: v.optional(v.string()),
+    side: v.optional(SIDE),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAdmin(ctx);
+    const invitationId = args.invitationId.trim();
+    if (!invitationId) throw new Error("Invitation group is required");
+
+    // Split each entry on commas too, so "Mia, Noah" in one field still
+    // becomes two children. Trim, drop blanks, and cap the batch.
+    const names = args.names
+      .flatMap((n) => n.split(","))
+      .map((n) => n.trim())
+      .filter(Boolean);
+    if (names.length === 0) throw new Error("Enter at least one child's name");
+    if (names.length > 20) {
+      throw new Error("That's a lot of children — add them in smaller batches");
+    }
+
+    // Inherit household defaults (last name, side, address) from an existing,
+    // non-deleted member of the same invitation group.
+    const household = (await ctx.db.query("guests").collect()).filter(
+      (g) => g.deletedAt === undefined && g.invitationId === invitationId,
+    );
+    const anchor = household.find((g) => !g.isChild) ?? household[0];
+
+    const lastName = (args.lastName ?? anchor?.lastName ?? "").trim();
+    if (!lastName) {
+      throw new Error("Last name is required (no household member to inherit from)");
+    }
+    const side = args.side ?? anchor?.side ?? "both";
+    const address = anchor?.address;
+
+    const now = Date.now();
+    const ids: Id<"guests">[] = [];
+    for (const firstName of names) {
+      const id = await ctx.db.insert("guests", {
+        firstName,
+        lastName,
+        aliases: [],
+        address,
+        invitationId,
+        side,
+        isChild: true,
+        rsvpStatus: "pending",
+        rsvpOffline: false,
+        plusOneAllowed: false,
+        createdAt: now,
+        createdBy: userId,
+        updatedAt: now,
+      });
+      ids.push(id);
+    }
+    return { inserted: ids.length, invitationId, ids };
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("guests"),
