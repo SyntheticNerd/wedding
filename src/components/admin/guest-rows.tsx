@@ -27,7 +27,7 @@ export type GuestRowProps = {
 function ChildChip() {
   return (
     <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-      Child
+      Under 6
     </span>
   );
 }
