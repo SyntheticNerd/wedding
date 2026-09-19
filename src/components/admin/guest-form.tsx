@@ -357,7 +357,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
             }
             id="isChild"
           />
-          <Label htmlFor="isChild">Child</Label>
+          <Label htmlFor="isChild">Child (under 6)</Label>
         </div>
       </div>
 

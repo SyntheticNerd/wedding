@@ -85,7 +85,7 @@ export function GuestChildrenDialog({
         <DialogHeader>
           <DialogTitle>Add children</DialogTitle>
           <DialogDescription>
-            To {householdLabel}. Each name becomes a child guest in this
+            To {householdLabel}. Each name becomes a child (under 6) in this
             invitation group.
           </DialogDescription>
         </DialogHeader>
