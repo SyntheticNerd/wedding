@@ -25,13 +25,17 @@ import {
 } from "@/components/ui/select";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { RsvpStatusBadge } from "./rsvp-status-badge";
 import {
-  GuestPriorityPicker,
   PRIORITY_LEVELS,
   priorityMeta,
   type GuestPriority,
 } from "./guest-priority";
+import {
+  GuestMobileRow,
+  GuestDesktopRow,
+  SIDE_LABEL,
+} from "./guest-rows";
+import { GuestGroups } from "./guest-groups";
 import { BulkEditDialog } from "./bulk-edit-dialog";
 import { GuestPrintSheet } from "./guest-print-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,12 +47,6 @@ type Side = "bride" | "groom" | "both" | "all";
 type StatusFilter = "all" | "pending" | "yes" | "no";
 type PriorityFilter = "all" | GuestPriority | "untriaged";
 
-const SIDE_LABEL: Record<Exclude<Side, "all">, string> = {
-  bride: "Bride",
-  groom: "Groom",
-  both: "Both",
-};
-
 export function GuestTable() {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<Side>("all");
@@ -56,6 +54,7 @@ export function GuestTable() {
   const [priority, setPriority] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<Set<Id<"guests">>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [groupByHousehold, setGroupByHousehold] = useState(false);
   const [pending, startTransition] = useTransition();
   const bulkSoftDelete = useMutation(api.guests.bulkSoftDelete);
   const setGuestPriority = useMutation(api.guests.setPriority);
@@ -123,6 +122,17 @@ export function GuestTable() {
         for (const g of guests) next.delete(g._id);
       } else {
         for (const g of guests) next.add(g._id);
+      }
+      return next;
+    });
+  }
+
+  function toggleMany(ids: Id<"guests">[], select: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (select) next.add(id);
+        else next.delete(id);
       }
       return next;
     });
@@ -270,6 +280,42 @@ export function GuestTable() {
         {headerActions}
       </div>
 
+      {/* View toggle — mobile-first: right-aligned, large tap target. */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {guests === undefined
+            ? ""
+            : `${guests.length} guest${guests.length === 1 ? "" : "s"}`}
+        </p>
+        <label className="flex items-center gap-2 text-sm cursor-pointer select-none py-1">
+          <Checkbox
+            checked={groupByHousehold}
+            onCheckedChange={(v) => setGroupByHousehold(v === true)}
+            aria-label="Group by household"
+          />
+          Group by household
+        </label>
+      </div>
+
+      {groupByHousehold ? (
+        guests === undefined ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={`g-s${i}`} className="h-28" />
+            ))}
+          </div>
+        ) : (
+          <GuestGroups
+            guests={guests}
+            selected={selected}
+            onToggle={toggleOne}
+            onToggleMany={toggleMany}
+            onSetPriority={onSetPriority}
+            pending={pending}
+          />
+        )
+      ) : (
+        <>
       {/* Mobile: card list — desktop's 6-col table is unscannable on a phone */}
       <ul className="sm:hidden divide-y divide-border rounded-md border border-border bg-card">
         {guests === undefined ? (
@@ -289,59 +335,16 @@ export function GuestTable() {
               : "No guests yet — add your first one."}
           </li>
         ) : (
-          guests.map((g) => {
-            const checked = selected.has(g._id);
-            return (
-              <li key={g._id} className="flex items-stretch">
-                <div className="flex items-center justify-center px-4">
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggleOne(g._id)}
-                    aria-label={`Select ${g.firstName} ${g.lastName}`}
-                  />
-                </div>
-                <Link
-                  href={`/admin/guests/${g._id}`}
-                  className="flex-1 min-w-0 flex items-start gap-3 p-3 active:bg-muted/50 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">
-                      {g.firstName} {g.lastName}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span>{SIDE_LABEL[g.side]}</span>
-                      <span aria-hidden>·</span>
-                      <span className="font-mono">{g.invitationId}</span>
-                      {g.plusOneAllowed && (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span>+1 allowed</span>
-                        </>
-                      )}
-                    </div>
-                    {g.aliases.length > 0 && (
-                      <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                        aka {g.aliases.join(", ")}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                {/* Outside the Link so tapping these doesn't navigate. */}
-                <div className="shrink-0 flex flex-col items-end justify-center gap-1.5 py-3 pr-3">
-                  <RsvpStatusBadge
-                    status={g.rsvpStatus}
-                    offline={g.rsvpOffline}
-                  />
-                  <GuestPriorityPicker
-                    value={g.priority}
-                    onChange={(next) => onSetPriority(g._id, next)}
-                    disabled={pending}
-                    ariaLabel={`Set priority for ${g.firstName} ${g.lastName}`}
-                  />
-                </div>
-              </li>
-            );
-          })
+          guests.map((g) => (
+            <GuestMobileRow
+              key={g._id}
+              guest={g}
+              checked={selected.has(g._id)}
+              onToggle={toggleOne}
+              onSetPriority={onSetPriority}
+              pending={pending}
+            />
+          ))
         )}
       </ul>
 
@@ -394,99 +397,22 @@ export function GuestTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              guests.map((g) => {
-                const checked = selected.has(g._id);
-                return (
-                  <TableRow
-                    key={g._id}
-                    className={cn(
-                      "cursor-pointer",
-                      checked && "bg-muted/40",
-                    )}
-                    onClick={(e) => {
-                      // Clicking the checkbox cell toggles selection;
-                      // anywhere else navigates to the guest detail.
-                      const target = e.target as HTMLElement;
-                      if (target.closest("[data-row-checkbox]")) return;
-                      window.location.href = `/admin/guests/${g._id}`;
-                    }}
-                  >
-                    <TableCell
-                      data-row-checkbox
-                      className="w-10"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={() => toggleOne(g._id)}
-                        aria-label={`Select ${g.firstName} ${g.lastName}`}
-                      />
-                    </TableCell>
-                    <TableCell className="max-w-[28ch]">
-                      <div className="font-medium truncate" title={`${g.firstName} ${g.lastName}`}>
-                        {g.firstName} {g.lastName}
-                      </div>
-                      {g.aliases.length > 0 && (
-                        <div className="text-xs text-muted-foreground truncate">
-                          aka {g.aliases.join(", ")}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <GuestPriorityPicker
-                        value={g.priority}
-                        onChange={(next) => onSetPriority(g._id, next)}
-                        disabled={pending}
-                        ariaLabel={`Set priority for ${g.firstName} ${g.lastName}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {SIDE_LABEL[g.side]}
-                    </TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">
-                      {g.invitationId}
-                    </TableCell>
-                    <TableCell>
-                      <RsvpStatusBadge
-                        status={g.rsvpStatus}
-                        offline={g.rsvpOffline}
-                      />
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {!g.plusOneAllowed ? (
-                        "—"
-                      ) : g.plusOneRsvp === "yes" ? (
-                        <span>
-                          Yes
-                          {g.plusOneName ? ` · ${g.plusOneName}` : ""}
-                        </span>
-                      ) : g.plusOneRsvp === "no" ? (
-                        <span className="text-[var(--status-no)]">
-                          Declined
-                        </span>
-                      ) : g.rsvpStatus === "no" ? (
-                        <span className="text-muted-foreground">
-                          Allowed (n/a)
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="size-1.5 rounded-full bg-[var(--status-offline)]" />
-                          <span className="text-[var(--status-offline)]">
-                            +1 pending
-                          </span>
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-right text-muted-foreground">
-                      {new Date(g.updatedAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+              guests.map((g) => (
+                <GuestDesktopRow
+                  key={g._id}
+                  guest={g}
+                  checked={selected.has(g._id)}
+                  onToggle={toggleOne}
+                  onSetPriority={onSetPriority}
+                  pending={pending}
+                />
+              ))
             )}
           </TableBody>
         </Table>
       </div>
+        </>
+      )}
 
       {/* Sticky bulk-action bar — bottom of viewport on every breakpoint. */}
       {selectionCount > 0 && (
