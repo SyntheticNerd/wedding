@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { type Doc, type Id } from "./_generated/dataModel";
 import { GUEST_PRIORITY, RSVP_STATUS, SIDE } from "./schema";
 import {
@@ -240,6 +240,38 @@ export const listInvitations = query({
    Mutations
    -------------------------------------------------------------------- */
 
+/**
+ * Copy one address to every other (non-deleted) member of the same household,
+ * so a household shares one mailing address. Only patches members whose address
+ * actually differs, to avoid needless writes. Address isn't an audit-logged
+ * field, so no audit rows are written here.
+ */
+async function propagateAddressToHousehold(
+  ctx: MutationCtx,
+  args: {
+    invitationId: string;
+    address: NonNullable<Doc<"guests">["address"]>;
+    exceptId: Id<"guests">;
+  },
+): Promise<number> {
+  const members = (await ctx.db.query("guests").collect()).filter(
+    (g) =>
+      g.deletedAt === undefined &&
+      g.invitationId === args.invitationId &&
+      g._id !== args.exceptId,
+  );
+  const target = JSON.stringify(args.address);
+  const now = Date.now();
+  let updated = 0;
+  for (const m of members) {
+    if (JSON.stringify(m.address) !== target) {
+      await ctx.db.patch(m._id, { address: args.address, updatedAt: now });
+      updated++;
+    }
+  }
+  return updated;
+}
+
 export const create = mutation({
   args: guestFields,
   handler: async (ctx, args) => {
@@ -272,6 +304,14 @@ export const create = mutation({
       createdBy: userId,
       updatedAt: now,
     });
+    // A household shares one mailing address — push it to any existing members.
+    if (args.address) {
+      await propagateAddressToHousehold(ctx, {
+        invitationId,
+        address: args.address,
+        exceptId: id,
+      });
+    }
     // Returning invitationId — caller may want to chain another insert into
     // the same household (e.g. the "Save & add another" form action).
     return { id, invitationId };
@@ -404,6 +444,14 @@ export const update = mutation({
         changedByUserId: userId,
         before,
         after,
+      });
+    }
+    // Keep the household's mailing address in sync when one member's changes.
+    if (next.address) {
+      await propagateAddressToHousehold(ctx, {
+        invitationId: next.invitationId,
+        address: next.address,
+        exceptId: args.id,
       });
     }
     return args.id;

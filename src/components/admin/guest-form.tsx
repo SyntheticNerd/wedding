@@ -487,6 +487,9 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
         <AccordionItem value="address">
           <AccordionTrigger>Address (optional)</AccordionTrigger>
           <AccordionContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <p className="sm:col-span-2 text-xs text-muted-foreground">
+              Saved to everyone in this household (same invitation group).
+            </p>
             <Field
               label="Line 1"
               className="sm:col-span-2"
