@@ -27,6 +27,7 @@ import {
 import { AuditLog } from "./audit-log";
 import { PRIORITY_LEVELS, type GuestPriority } from "./guest-priority";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { parseAddress } from "@/lib/parse-address";
 
 type Mode = "create" | "edit";
 
@@ -111,6 +112,25 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
     value: FormState[K],
   ) {
     setState((s) => ({ ...s, [key]: value }));
+  }
+
+  // Paste a whole address into Line 1 and split it across the fields. Falls
+  // back to a normal paste when the text doesn't look like a full address
+  // (parseAddress returns null unless it finds a ZIP/postal code).
+  function handleAddressPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const parsed = parseAddress(e.clipboardData.getData("text"));
+    if (!parsed) return;
+    e.preventDefault();
+    setState((s) => ({
+      ...s,
+      addressLine1: parsed.line1,
+      addressLine2: parsed.line2 ?? "",
+      addressCity: parsed.city,
+      addressRegion: parsed.region,
+      addressPostal: parsed.postalCode,
+      addressCountry: parsed.country,
+    }));
+    toast.success("Address split into fields");
   }
 
   function buildPayload() {
@@ -453,12 +473,18 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
         <AccordionItem value="address">
           <AccordionTrigger>Address (optional)</AccordionTrigger>
           <AccordionContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <Field label="Line 1" className="sm:col-span-2">
+            <Field
+              label="Line 1"
+              className="sm:col-span-2"
+              hint="Paste a full address here to auto-fill the fields below."
+            >
               <Input
                 value={state.addressLine1}
                 onChange={(e) =>
                   handleChange("addressLine1", e.target.value)
                 }
+                onPaste={handleAddressPaste}
+                placeholder="123 Main St, Fresno, CA 93720"
               />
             </Field>
             <Field label="Line 2" className="sm:col-span-2">
