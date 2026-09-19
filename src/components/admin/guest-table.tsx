@@ -54,7 +54,7 @@ export function GuestTable() {
   const [priority, setPriority] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<Set<Id<"guests">>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
-  const [groupByHousehold, setGroupByHousehold] = useState(false);
+  const [groupByHousehold, setGroupByHousehold] = useState(true);
   const [pending, startTransition] = useTransition();
   const bulkSoftDelete = useMutation(api.guests.bulkSoftDelete);
   const setGuestPriority = useMutation(api.guests.setPriority);
