@@ -521,7 +521,7 @@ export function GuestForm({ mode, initial, defaultInvitationId }: Props) {
                   value={state.addressLine1}
                   onChange={(e) => handleLine1Change(e.target.value)}
                   onPaste={handleAddressPaste}
-                  placeholder="123 Main St, Fresno, CA 93720"
+                  placeholder="Street address"
                   className="flex-1"
                 />
                 <Button
