@@ -46,12 +46,16 @@ import Papa from "papaparse";
 type Side = "bride" | "groom" | "both" | "all";
 type StatusFilter = "all" | "pending" | "yes" | "no";
 type PriorityFilter = "all" | GuestPriority | "untriaged";
+type AddressFilter = "all" | "missing" | "has";
+
+const hasAddress = (g: Doc<"guests">) => !!g.address?.line1?.trim();
 
 export function GuestTable() {
   const [search, setSearch] = useState("");
   const [side, setSide] = useState<Side>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [priority, setPriority] = useState<PriorityFilter>("all");
+  const [address, setAddress] = useState<AddressFilter>("all");
   const [selected, setSelected] = useState<Set<Id<"guests">>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [groupByHousehold, setGroupByHousehold] = useState(true);
@@ -66,16 +70,23 @@ export function GuestTable() {
     search: search.trim() || undefined,
   }) as Doc<"guests">[] | undefined;
 
-  // Priority is filtered client-side: the "untriaged" case (field absent) is
-  // awkward to express as a single Convex union arg, and the list is small.
+  // Priority and address are filtered client-side: "untriaged"/"missing" (an
+  // absent field) are awkward to express as a Convex arg, and the list is small.
   const guests = useMemo(() => {
     if (!allGuests) return allGuests;
-    if (priority === "all") return allGuests;
+    let rows = allGuests;
     if (priority === "untriaged") {
-      return allGuests.filter((g) => g.priority === undefined);
+      rows = rows.filter((g) => g.priority === undefined);
+    } else if (priority !== "all") {
+      rows = rows.filter((g) => g.priority === priority);
     }
-    return allGuests.filter((g) => g.priority === priority);
-  }, [allGuests, priority]);
+    if (address === "missing") {
+      rows = rows.filter((g) => !hasAddress(g));
+    } else if (address === "has") {
+      rows = rows.filter((g) => hasAddress(g));
+    }
+    return rows;
+  }, [allGuests, priority, address]);
 
   function onSetPriority(id: Id<"guests">, next?: GuestPriority) {
     startTransition(async () => {
@@ -219,9 +230,11 @@ export function GuestTable() {
     if (status !== "all") parts.push(`RSVP: ${status}`);
     if (priority === "untriaged") parts.push("Untriaged");
     else if (priority !== "all") parts.push(priorityMeta(priority).label);
+    if (address === "missing") parts.push("Missing address");
+    else if (address === "has") parts.push("Has address");
     if (search.trim()) parts.push(`"${search.trim()}"`);
     return parts.join(" · ");
-  }, [side, status, priority, search]);
+  }, [side, status, priority, address, search]);
 
   return (
     <>
@@ -274,6 +287,19 @@ export function GuestTable() {
                 </SelectItem>
               ))}
               <SelectItem value="untriaged">Untriaged</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={address}
+            onValueChange={(v) => setAddress(v as AddressFilter)}
+          >
+            <SelectTrigger className="sm:w-40">
+              <SelectValue placeholder="Address" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All addresses</SelectItem>
+              <SelectItem value="missing">Missing address</SelectItem>
+              <SelectItem value="has">Has address</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -330,7 +356,8 @@ export function GuestTable() {
             {search.trim() ||
             side !== "all" ||
             status !== "all" ||
-            priority !== "all"
+            priority !== "all" ||
+            address !== "all"
               ? "No guests match these filters."
               : "No guests yet — add your first one."}
           </li>
