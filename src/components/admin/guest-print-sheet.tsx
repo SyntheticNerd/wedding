@@ -28,6 +28,20 @@ function rsvpLabel(g: Doc<"guests">): string {
   return g.rsvpOffline ? `${base} (offline)` : base;
 }
 
+/** One-line mailing address, e.g. "123 Main St, Apt 2, Fresno, CA 93720". */
+function formatAddress(a: Doc<"guests">["address"]): string | null {
+  if (!a || !a.line1) return null;
+  const cityStateZip = [
+    [a.city, a.region].filter(Boolean).join(", "),
+    a.postalCode,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const parts = [a.line1, a.line2, cityStateZip].filter(Boolean);
+  if (a.country && a.country !== "US") parts.push(a.country);
+  return parts.join(", ");
+}
+
 function plusOneLabel(g: Doc<"guests">): string | null {
   if (!g.plusOneAllowed) return null;
   if (g.plusOneRsvp === "yes") {
@@ -124,8 +138,24 @@ export function GuestPrintSheet({
               key={h.invitationId}
               className="break-inside-avoid border-b border-black/25 pb-2"
             >
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-black/60">
-                {h.invitationId}
+              <div className="mb-1 flex items-baseline justify-between gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-black/60">
+                  {h.invitationId}
+                </span>
+                {(() => {
+                  const addr = formatAddress(
+                    h.members.find((m) => m.address?.line1)?.address,
+                  );
+                  return addr ? (
+                    <span className="text-right text-xs text-black/80">
+                      {addr}
+                    </span>
+                  ) : (
+                    <span className="text-right text-xs italic text-black/45">
+                      no address on file
+                    </span>
+                  );
+                })()}
               </div>
               <ul className="space-y-1">
                 {h.members.map((g) => {
